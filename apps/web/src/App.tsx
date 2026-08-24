@@ -31,6 +31,7 @@ import GpsTrackerStudio from "./pages/GpsTrackerStudio";
 import RouterStudio from "./pages/RouterStudio";
 import AirgapSurvivalStudio from "./pages/AirgapSurvivalStudio";
 import LogicAnalyzerStudio from "./pages/LogicAnalyzerStudio";
+import AudioSynthStudio from "./pages/AudioSynthStudio";
 
 function App() {
   return (
@@ -104,6 +105,10 @@ function App() {
           <Route path="sniffer" element={<LogicAnalyzerStudio />} />
           <Route path="analyzer" element={<LogicAnalyzerStudio />} />
           <Route path="bus" element={<LogicAnalyzerStudio />} />
+          <Route path="synth" element={<AudioSynthStudio />} />
+          <Route path="audio" element={<AudioSynthStudio />} />
+          <Route path="chiptune" element={<AudioSynthStudio />} />
+          <Route path="tracker" element={<AudioSynthStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />

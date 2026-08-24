@@ -25,6 +25,7 @@ import {
   Compass,
   Router as RouterIcon,
   ShieldAlert,
+  Music,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -74,6 +75,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
     { path: "/router", label: "Custom Routers", badge: "OpenWrt", icon: RouterIcon, color: "text-cyan-400" },
     { path: "/survival", label: "Airgap Survival", badge: "KiCad", icon: ShieldAlert, color: "text-rose-400" },
     { path: "/logic", label: "Logic Analyzer", badge: "Bus Sniffer", icon: Activity, color: "text-neon-green" },
+    { path: "/synth", label: "Audio & Chiptune", badge: "Tracker", icon: Music, color: "text-rose-400" },
     { path: "/calculator", label: "RAID & NAS Calc", badge: "ZFS", icon: Calculator, color: "text-blue-400" },
     { path: "/parts", label: "Parts Catalog", badge: "50+ SBCs", icon: Cpu, color: "text-teal-400" },
     { path: "/chat", label: "AI Hardware Chat", badge: "LLM", icon: MessageSquare, color: "text-pink-400" },

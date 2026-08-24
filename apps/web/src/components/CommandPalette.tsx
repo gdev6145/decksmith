@@ -25,6 +25,7 @@ import {
   Printer,
   Router as RouterIcon,
   ShieldAlert,
+  Music,
 } from "lucide-react";
 
 import { soundFx } from "../lib/soundFx";
@@ -222,6 +223,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       icon: Activity,
       action: () => { navigate("/logic"); onClose(); },
       badge: "Logic",
+    },
+    {
+      id: "tool-synth",
+      category: "Tools",
+      title: "Cyberdeck Audio DSP & Chiptune Synth Studio",
+      subtitle: "16-step tracker sequencer, I2S DAC codecs, and ALSA asound.conf exporter",
+      icon: Music,
+      action: () => { navigate("/synth"); onClose(); },
+      badge: "Audio",
     },
     {
       id: "tool-chat",
