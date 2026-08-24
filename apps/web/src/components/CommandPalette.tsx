@@ -23,6 +23,7 @@ import {
   Flame,
   QrCode,
   Printer,
+  Router as RouterIcon,
 } from "lucide-react";
 
 import { soundFx } from "../lib/soundFx";
@@ -193,6 +194,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       icon: Compass,
       action: () => { navigate("/gps"); onClose(); },
       badge: "GNSS",
+    },
+    {
+      id: "tool-router",
+      category: "Tools",
+      title: "Custom Router & Firewall Gateway Studio",
+      subtitle: "OpenWrt / pfSense hardware architect, WireGuard throughput, and UCI configs",
+      icon: RouterIcon,
+      action: () => { navigate("/router"); onClose(); },
+      badge: "Router",
     },
     {
       id: "tool-chat",
