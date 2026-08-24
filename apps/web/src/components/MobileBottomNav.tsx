@@ -124,6 +124,29 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
               </div>
             </div>
 
+            {/* Interactive Mission Guide Launcher Banner */}
+            <button
+              onClick={() => {
+                triggerTap();
+                setShowDrawer(false);
+                window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1" }));
+              }}
+              className="w-full p-3 rounded-xl bg-gradient-to-r from-emerald-950/60 to-cyan-950/60 border border-neon-green/40 text-left flex items-center justify-between shadow-lg shadow-neon-green/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-neon-green/10 border border-neon-green/30 flex items-center justify-center text-neon-green">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white uppercase font-mono">Interactive Mission Guide</div>
+                  <div className="text-[10px] text-gray-300">Step-by-step onboarding quest for builders</div>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-neon-green text-black font-bold text-[10px] font-mono">
+                Start
+              </span>
+            </button>
+
             {/* Grid of Studios */}
             <div className="grid grid-cols-2 gap-2.5 pt-1">
               {allStudios.map((studio) => {

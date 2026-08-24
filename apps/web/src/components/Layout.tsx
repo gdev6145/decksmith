@@ -4,6 +4,7 @@ import { MessageSquare, Wrench, Cpu, Home, Settings, Heart, Sun, Moon, Bell, Cal
 import { useTheme } from "../ThemeContext";
 import CommandPalette from "./CommandPalette";
 import MobileBottomNav from "./MobileBottomNav";
+import InteractiveWizard from "./InteractiveWizard";
 import { soundFx } from "../lib/soundFx";
 
 const navItems = [
@@ -24,15 +25,25 @@ export default function Layout() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [isSoundOn, setIsSoundOn] = useState(soundFx.isEnabled());
   const [notifications, setNotifications] = useState<Array<{ id: string; type: string; title: string; message: string; read: boolean; url: string | null; createdAt: string }>>([]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle Command Palette (Ctrl+K / Cmd+K)
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setShowCommandPalette((prev) => !prev);
+      }
+      // Toggle Interactive Guide Wizard (F1 or ? / Shift+/)
+      if (
+        (e.key === "F1" || e.key === "?") &&
+        !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)
+      ) {
+        e.preventDefault();
+        setShowWizard((prev) => !prev);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -116,6 +127,21 @@ export default function Layout() {
                   </Link>
                 );
               })}
+              <button
+                onClick={() => {
+                  soundFx.playConfirm();
+                  setShowWizard(true);
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                  theme === "light"
+                    ? "text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300"
+                    : "text-neon-green bg-emerald-950/40 hover:bg-emerald-950/70 border border-neon-green/40 shadow-sm shadow-neon-green/10"
+                }`}
+                title="Open Interactive Mission Guide & Onboarding Wizard (? / F1)"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-neon-green" />
+                <span className="hidden sm:inline">Guide</span>
+              </button>
               <button
                 onClick={() => setShowCommandPalette(true)}
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
@@ -268,11 +294,27 @@ export default function Layout() {
         </div>
       </footer>
 
+      {/* Floating Interactive Guide Launcher (Desktop) */}
+      <button
+        onClick={() => {
+          soundFx.playConfirm();
+          setShowWizard((prev) => !prev);
+        }}
+        className="hidden md:flex fixed bottom-6 right-6 z-40 items-center gap-2 px-3.5 py-2 rounded-full bg-gray-900/90 border border-neon-green/40 hover:border-neon-green text-neon-green text-xs font-mono font-bold shadow-xl shadow-neon-green/10 backdrop-blur-md transition-all hover:scale-105"
+        title="Toggle Interactive Mission Guide (? / F1)"
+      >
+        <Sparkles className="w-4 h-4 text-neon-green animate-pulse" />
+        <span>Mission Guide (?)</span>
+      </button>
+
       {/* Floating Mobile Bottom Navigation Dock (Mobile Only) */}
       <MobileBottomNav onOpenCommandPalette={() => setShowCommandPalette(true)} />
 
       {/* Global Command Palette (Ctrl+K / Cmd+K) */}
       <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
+
+      {/* Interactive Onboarding Mission Guide Wizard */}
+      <InteractiveWizard isOpen={showWizard} onClose={() => setShowWizard(false)} />
     </div>
   );
 }

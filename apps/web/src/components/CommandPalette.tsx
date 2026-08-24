@@ -234,6 +234,19 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "Audio",
     },
     {
+      id: "tool-guide",
+      category: "Tools",
+      title: "Interactive Mission Guide & Onboarding Wizard",
+      subtitle: "Step-by-step interactive quest for new builders (Hardware, CAD, Power, Flasher, RF)",
+      icon: Sparkles,
+      action: () => {
+        onClose();
+        // Dispatch synthetic F1 keypress or global custom event
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1" }));
+      },
+      badge: "Wizard",
+    },
+    {
       id: "tool-chat",
       category: "Tools",
       title: "AI Hardware Architect Chat",
