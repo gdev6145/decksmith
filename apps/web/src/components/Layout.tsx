@@ -24,6 +24,7 @@ import {
   LogIn,
   LogOut,
   Shield,
+  Zap,
 } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import { useAuth } from "../AuthContext";
@@ -110,28 +111,19 @@ export default function Layout() {
     <div className={`min-h-screen flex flex-col ${theme === "light" ? "bg-gray-50 text-gray-900" : "bg-gray-950 text-gray-100"}`}>
       {/* Header */}
       <header className={`border-b ${theme === "light" ? "border-gray-200 bg-gray-100/50" : "border-gray-800 bg-gray-900/50"} backdrop-blur-sm sticky top-0 z-50`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 gap-2">
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-neon-green to-neon-blue rounded-lg flex items-center justify-center">
-                <Cpu className="w-6 h-6 text-gray-900" />
+            <Link to="/" className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-neon-green to-neon-blue rounded-lg flex items-center justify-center">
+                <Cpu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-neon-green to-neon-blue bg-clip-text text-transparent">
+              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-neon-green to-neon-blue bg-clip-text text-transparent">
                 Decksmith
               </span>
             </Link>
 
-            {/* Navigation */}
-            <button
-              onClick={() => setShowMobileNav((prev) => !prev)}
-              className={`md:hidden p-2 rounded-lg ${theme === "light" ? "text-gray-600 hover:bg-gray-200" : "text-gray-300 hover:bg-gray-800"}`}
-              aria-label={showMobileNav ? "Close navigation" : "Open navigation"}
-              aria-expanded={showMobileNav}
-            >
-              {showMobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-
+            {/* Desktop Navbar Center */}
             <nav className="hidden md:flex items-center gap-1 overflow-x-auto py-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -151,16 +143,21 @@ export default function Layout() {
                     }`}
                   >
                     <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">{item.label}</span>
+                    <span className="hidden lg:inline">{item.label}</span>
                   </Link>
                 );
               })}
+            </nav>
+
+            {/* Action Buttons (Right Header - Always Visible on Mobile & Desktop) */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Guide Button (Visible on both Mobile & Desktop) */}
               <button
                 onClick={() => {
                   soundFx.playConfirm();
                   setShowWizard(true);
                 }}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                className={`flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all ${
                   theme === "light"
                     ? "text-emerald-700 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300"
                     : "text-neon-green bg-emerald-950/40 hover:bg-emerald-950/70 border border-neon-green/40 shadow-sm shadow-neon-green/10"
@@ -168,103 +165,10 @@ export default function Layout() {
                 title="Open Interactive Mission Guide & Onboarding Wizard (? / F1)"
               >
                 <Sparkles className="w-3.5 h-3.5 text-neon-green" />
-                <span className="hidden sm:inline">Guide</span>
+                <span className="text-[11px] sm:text-xs">Guide</span>
               </button>
-              <button
-                onClick={() => setShowCommandPalette(true)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
-                  theme === "light"
-                    ? "text-gray-600 bg-gray-200/70 hover:bg-gray-200"
-                    : "text-gray-300 bg-gray-800/80 hover:bg-gray-800 border border-gray-700 hover:border-neon-green"
-                }`}
-                title="Open Command Palette (Ctrl+K)"
-              >
-                <Search className="w-3.5 h-3.5 text-neon-green" />
-                <span className="hidden lg:inline text-[11px] text-gray-400">Ctrl+K</span>
-              </button>
-              <button
-                onClick={toggleTheme}
-                className={`flex items-center gap-1.5 p-2 rounded-lg transition-all ${
-                  theme === "light" ? "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50" : "text-gray-400 hover:text-yellow-400 hover:bg-gray-800/50"
-                }`}
-                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => {
-                  const state = soundFx.toggleSound();
-                  setIsSoundOn(state);
-                }}
-                className={`flex items-center gap-1.5 p-2 rounded-lg transition-all ${
-                  isSoundOn
-                    ? "text-neon-green hover:bg-gray-800/50"
-                    : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
-                }`}
-                title={isSoundOn ? "Mute Cyberpunk Audio FX" : "Enable Cyberpunk Audio FX"}
-              >
-                {isSoundOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                    theme === "light" ? "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50" : "text-gray-500 hover:text-neon-green hover:bg-gray-800/50"
-                  }`}
-                  title="Notifications"
-                >
-                  <Bell className="w-4 h-4" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </button>
-                {showNotifications && (
-                  <div className={`absolute right-0 top-full mt-2 w-80 rounded-xl border shadow-xl z-50 ${
-                    theme === "light" ? "bg-white border-gray-200" : "bg-gray-900 border-gray-700"
-                  }`}>
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-                      <h3 className="text-sm font-semibold text-gray-100">Notifications</h3>
-                      {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-neon-green hover:underline">
-                          Mark all read
-                        </button>
-                      )}
-                    </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.length > 0 ? notifications.map((n) => (
-                        <Link
-                          key={n.id}
-                          to={n.url || "#"}
-                          onClick={() => setShowNotifications(false)}
-                          className={`block px-4 py-3 border-b border-gray-800 hover:bg-gray-800/50 transition-colors ${
-                            !n.read ? "bg-gray-800/30" : ""
-                          }`}
-                        >
-                          <p className="text-sm text-gray-200">{n.title}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                          <p className="text-xs text-gray-600 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
-                        </Link>
-                      )) : (
-                        <p className="text-sm text-gray-500 text-center py-6">No notifications</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <Link
-                to="/wishlist"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                  location.pathname === "/wishlist"
-                    ? theme === "light" ? "bg-gray-200 text-red-400" : "bg-gray-800 text-red-400"
-                    : theme === "light" ? "text-gray-500 hover:text-red-400 hover:bg-gray-200/50" : "text-gray-500 hover:text-red-400 hover:bg-gray-800/50"
-                }`}
-                title="Wishlist"
-              >
-                <Heart className="w-4 h-4" />
-              </Link>
-              {/* User Authentication & Operative Profile Menu */}
+
+              {/* User Authentication / Callsign Profile Button */}
               {isAuthenticated && user ? (
                 <div className="relative">
                   <button
@@ -272,14 +176,16 @@ export default function Layout() {
                       soundFx.playClick();
                       setShowUserMenu((prev) => !prev);
                     }}
-                    className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-gray-800/90 border border-gray-700 hover:border-neon-green transition-all"
+                    className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-gray-800/90 border border-gray-700 hover:border-neon-green transition-all"
                   >
                     <img
                       src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.name}`}
                       alt={user.name}
-                      className="w-5 h-5 rounded-lg bg-gray-900 border border-gray-700"
+                      className="w-6 h-6 rounded-lg bg-gray-900 border border-gray-700"
                     />
-                    <span className="text-xs font-bold font-mono text-neon-green hidden lg:inline">{user.name}</span>
+                    <span className="text-xs font-bold font-mono text-neon-green hidden md:inline truncate max-w-[100px]">
+                      {user.name}
+                    </span>
                   </button>
 
                   {showUserMenu && (
@@ -339,19 +245,100 @@ export default function Layout() {
                 </button>
               )}
 
-              <Link
-                to="/settings"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ml-1 ${
-                  location.pathname === "/settings"
-                    ? theme === "light" ? "bg-gray-200 text-neon-green" : "bg-gray-800 text-neon-green"
-                    : theme === "light" ? "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+              {/* Desktop Command Palette Trigger */}
+              <button
+                onClick={() => setShowCommandPalette(true)}
+                className={`hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
+                  theme === "light"
+                    ? "text-gray-600 bg-gray-200/70 hover:bg-gray-200"
+                    : "text-gray-300 bg-gray-800/80 hover:bg-gray-800 border border-gray-700 hover:border-neon-green"
                 }`}
-                title="Settings"
+                title="Open Command Palette (Ctrl+K)"
               >
-                <Settings className="w-4 h-4" />
-              </Link>
-            </nav>
+                <Search className="w-3.5 h-3.5 text-neon-green" />
+                <span className="text-[11px] text-gray-400">Ctrl+K</span>
+              </button>
+
+              {/* Sound FX Toggle */}
+              <button
+                onClick={() => {
+                  const state = soundFx.toggleSound();
+                  setIsSoundOn(state);
+                }}
+                className={`flex items-center p-2 rounded-lg transition-all ${
+                  isSoundOn ? "text-neon-green hover:bg-gray-800/50" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
+                }`}
+                title={isSoundOn ? "Mute Audio FX" : "Enable Audio FX"}
+              >
+                {isSoundOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+              </button>
+
+              {/* Notifications Toggle */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
+                    theme === "light" ? "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50" : "text-gray-500 hover:text-neon-green hover:bg-gray-800/50"
+                  }`}
+                  title="Notifications"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+                {showNotifications && (
+                  <div
+                    className={`absolute right-0 top-full mt-2 w-80 rounded-xl border shadow-xl z-50 ${
+                      theme === "light" ? "bg-white border-gray-200" : "bg-gray-900 border-gray-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+                      <h3 className="text-sm font-semibold text-gray-100">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button onClick={markAllRead} className="text-xs text-neon-green hover:underline">
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((n) => (
+                          <Link
+                            key={n.id}
+                            to={n.url || "#"}
+                            onClick={() => setShowNotifications(false)}
+                            className={`block px-4 py-3 border-b border-gray-800 hover:bg-gray-800/50 transition-colors ${
+                              !n.read ? "bg-gray-800/30" : ""
+                            }`}
+                          >
+                            <p className="text-sm text-gray-200">{n.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
+                            <p className="text-xs text-gray-600 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
+                          </Link>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-6">No notifications</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Hamburger Toggle */}
+              <button
+                onClick={() => setShowMobileNav((prev) => !prev)}
+                className={`md:hidden p-2 rounded-lg ${theme === "light" ? "text-gray-600 hover:bg-gray-200" : "text-gray-300 hover:bg-gray-800"}`}
+                aria-label={showMobileNav ? "Close navigation" : "Open navigation"}
+              >
+                {showMobileNav ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
+
+          {/* Slide-Down Mobile Header Menu */}
           {showMobileNav && (
             <nav className={`md:hidden grid grid-cols-2 gap-1 pb-3 ${theme === "light" ? "border-t border-gray-200" : "border-t border-gray-800"} pt-3`}>
               {navItems.map((item) => {
@@ -364,8 +351,12 @@ export default function Layout() {
                     onClick={() => setShowMobileNav(false)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold ${
                       isActive
-                        ? theme === "light" ? "bg-gray-200 text-neon-green" : "bg-gray-800 text-neon-green"
-                        : theme === "light" ? "text-gray-600 hover:bg-gray-200" : "text-gray-400 hover:bg-gray-800"
+                        ? theme === "light"
+                          ? "bg-gray-200 text-neon-green"
+                          : "bg-gray-800 text-neon-green"
+                        : theme === "light"
+                        ? "text-gray-600 hover:bg-gray-200"
+                        : "text-gray-400 hover:bg-gray-800"
                     }`}
                   >
                     <Icon className="w-4 h-4" />

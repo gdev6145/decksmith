@@ -26,7 +26,10 @@ import {
   Router as RouterIcon,
   ShieldAlert,
   Music,
+  User,
+  LogIn,
 } from "lucide-react";
+import { useAuth } from "../AuthContext";
 import { soundFx } from "../lib/soundFx";
 
 interface MobileBottomNavProps {
@@ -35,6 +38,7 @@ interface MobileBottomNavProps {
 
 export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNavProps) {
   const location = useLocation();
+  const { user, isAuthenticated, setShowAuthModal } = useAuth();
   const [showDrawer, setShowDrawer] = useState(false);
   const [isSoundOn, setIsSoundOn] = useState(soundFx.isEnabled());
 
@@ -77,7 +81,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
     { path: "/logic", label: "Logic Analyzer", badge: "Bus Sniffer", icon: Activity, color: "text-neon-green" },
     { path: "/synth", label: "Audio & Chiptune", badge: "Tracker", icon: Music, color: "text-rose-400" },
     { path: "/calculator", label: "RAID & NAS Calc", badge: "ZFS", icon: Calculator, color: "text-blue-400" },
-    { path: "/parts", label: "Parts Catalog", badge: "50+ SBCs", icon: Cpu, color: "text-teal-400" },
+    { path: "/parts", label: "Parts Catalog", badge: "112+ Parts", icon: Cpu, color: "text-teal-400" },
     { path: "/chat", label: "AI Hardware Chat", badge: "LLM", icon: MessageSquare, color: "text-pink-400" },
   ];
 
@@ -85,22 +89,22 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
     <>
       {/* Slide-Up Mobile Apps & Studios Drawer */}
       {showDrawer && (
-        <div className="fixed inset-0 z-50 md:hidden flex flex-col justify-end bg-black/80 backdrop-blur-md animate-fade-in">
-          <div
-            className="flex-1"
-            onClick={() => {
-              triggerTap();
-              setShowDrawer(false);
-            }}
-          />
-          <div className="bg-gray-950 border-t border-gray-800 rounded-t-3xl p-5 space-y-4 max-h-[80vh] overflow-y-auto shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col justify-end md:hidden animate-in fade-in duration-200">
+          <div className="bg-gray-950 border-t border-gray-800 rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl">
+            {/* Drawer Header */}
             <div className="flex items-center justify-between border-b border-gray-800 pb-3">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-neon-green animate-pulse" />
-                <h3 className="text-sm font-black text-white font-mono uppercase tracking-wider">
-                  Decksmith Mobile Hub
-                </h3>
+                <div className="w-8 h-8 rounded-lg bg-neon-green/10 border border-neon-green/30 flex items-center justify-center text-neon-green">
+                  <Grid className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase font-mono tracking-wider">
+                    Decksmith Command Station
+                  </h3>
+                  <p className="text-[10px] text-gray-400 font-mono">20+ Cyberdeck Studios & Tools</p>
+                </div>
               </div>
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -109,6 +113,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
                     triggerTap();
                   }}
                   className="p-1.5 rounded-lg bg-gray-900 border border-gray-800 text-gray-300"
+                  title="Toggle Sound"
                 >
                   {isSoundOn ? <Volume2 className="w-4 h-4 text-neon-green" /> : <VolumeX className="w-4 h-4 text-gray-500" />}
                 </button>
@@ -124,6 +129,55 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
               </div>
             </div>
 
+            {/* Operative Identity / Sign In Card (Mobile) */}
+            {isAuthenticated && user ? (
+              <div className="p-3 bg-gray-900/90 border border-gray-800 rounded-2xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img
+                    src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.name}`}
+                    alt={user.name}
+                    className="w-9 h-9 rounded-xl bg-gray-950 border border-gray-800"
+                  />
+                  <div>
+                    <div className="text-xs font-bold text-white font-mono">{user.name}</div>
+                    <div className="text-[10px] text-neon-green font-mono">● OPERATIVE ACTIVE</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    triggerTap();
+                    setShowDrawer(false);
+                    setShowAuthModal(true);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-gray-800 text-[10px] font-mono text-cyan-300 font-bold border border-gray-700"
+                >
+                  Switch
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  triggerTap();
+                  setShowDrawer(false);
+                  setShowAuthModal(true);
+                }}
+                className="w-full p-3 rounded-2xl bg-emerald-950/40 border border-neon-green/40 flex items-center justify-between text-left shadow-md shadow-neon-green/10"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-neon-green text-black flex items-center justify-center font-bold">
+                    <LogIn className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white uppercase font-mono">Sign In / Register Callsign</div>
+                    <div className="text-[10px] text-gray-300">Access saved blueprints, CAD & parts</div>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded bg-neon-green text-black font-bold text-[10px] font-mono">
+                  Sign In
+                </span>
+              </button>
+            )}
+
             {/* Interactive Mission Guide Launcher Banner */}
             <button
               onClick={() => {
@@ -131,10 +185,10 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
                 setShowDrawer(false);
                 window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1" }));
               }}
-              className="w-full p-3 rounded-xl bg-gradient-to-r from-emerald-950/60 to-cyan-950/60 border border-neon-green/40 text-left flex items-center justify-between shadow-lg shadow-neon-green/10"
+              className="w-full p-3 rounded-2xl bg-gradient-to-r from-cyan-950/40 to-indigo-950/40 border border-cyan-500/40 text-left flex items-center justify-between shadow-lg"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-neon-green/10 border border-neon-green/30 flex items-center justify-center text-neon-green">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-300">
                   <Sparkles className="w-4 h-4" />
                 </div>
                 <div>
@@ -142,7 +196,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
                   <div className="text-[10px] text-gray-300">Step-by-step onboarding quest for builders</div>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded bg-neon-green text-black font-bold text-[10px] font-mono">
+              <span className="px-2 py-0.5 rounded bg-cyan-400 text-black font-bold text-[10px] font-mono">
                 Start
               </span>
             </button>
@@ -179,44 +233,44 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
         </div>
       )}
 
-      {/* Floating Bottom Navigation Dock */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-3 pb-3 pt-1 pointer-events-none">
-        <div className="max-w-md mx-auto bg-gray-950/90 backdrop-blur-xl border border-gray-800/90 rounded-2xl p-1.5 flex items-center justify-around shadow-2xl pointer-events-auto">
-          {navButtons.map((btn) => {
-            const Icon = btn.icon;
-            const isActive = location.pathname === btn.path;
-            return (
-              <Link
-                key={btn.path}
-                to={btn.path}
-                onClick={triggerTap}
-                className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
-                  isActive
-                    ? "text-neon-green font-bold bg-emerald-950/50 scale-105"
-                    : "text-gray-400 hover:text-gray-200"
-                }`}
-              >
-                <Icon className="w-4 h-4 mb-0.5" />
-                <span className="text-[10px] tracking-tight">{btn.label}</span>
-              </Link>
-            );
-          })}
+      {/* Floating Bottom Nav Dock (Mobile Screens Only) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-gray-950/95 border-t border-gray-800/80 backdrop-blur-xl px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-bottom"
+      >
+        {navButtons.map((btn) => {
+          const Icon = btn.icon;
+          const isActive = location.pathname === btn.path;
+          return (
+            <Link
+              key={btn.path}
+              to={btn.path}
+              onClick={triggerTap}
+              className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
+                isActive ? "text-neon-green font-bold scale-105" : "text-gray-400 hover:text-gray-200"
+              }`}
+            >
+              <Icon className="w-5 h-5 mb-0.5" />
+              <span className="text-[10px] font-mono tracking-tight">{btn.label}</span>
+            </Link>
+          );
+        })}
 
-          {/* Quick Hub Drawer Button */}
-          <button
-            onClick={() => {
-              triggerTap();
-              setShowDrawer((prev) => !prev);
-            }}
-            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
-              showDrawer ? "text-cyan-400 bg-cyan-950/50 scale-105" : "text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            <Grid className="w-4 h-4 mb-0.5" />
-            <span className="text-[10px] tracking-tight">More</span>
-          </button>
-        </div>
-      </div>
+        {/* More Studios / Launcher Button */}
+        <button
+          onClick={() => {
+            triggerTap();
+            setShowDrawer(true);
+          }}
+          className={`flex flex-col items-center justify-center p-1.5 rounded-xl transition-all ${
+            showDrawer ? "text-neon-green font-bold scale-105" : "text-gray-400 hover:text-gray-200"
+          }`}
+          aria-label="Open Studios Drawer"
+        >
+          <Grid className="w-5 h-5 mb-0.5 text-cyan-400" />
+          <span className="text-[10px] font-mono tracking-tight text-cyan-300">More</span>
+        </button>
+      </nav>
     </>
   );
 }
