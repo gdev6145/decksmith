@@ -130,6 +130,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "Thermals",
     },
     {
+      id: "tool-pinout",
+      category: "Tools",
+      title: "40-Pin GPIO & Bus Pinout Studio",
+      subtitle: "Interactive 40-pin header explorer, bus filtering, and Device Tree overlays",
+      icon: Cpu,
+      action: () => { navigate("/pinout"); onClose(); },
+      badge: "GPIO",
+    },
+    {
       id: "tool-chat",
       category: "Tools",
       title: "AI Hardware Architect Chat",
