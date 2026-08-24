@@ -24,6 +24,7 @@ import {
   QrCode,
   Printer,
   Router as RouterIcon,
+  ShieldAlert,
 } from "lucide-react";
 
 import { soundFx } from "../lib/soundFx";
@@ -203,6 +204,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       icon: RouterIcon,
       action: () => { navigate("/router"); onClose(); },
       badge: "Router",
+    },
+    {
+      id: "tool-survival",
+      category: "Tools",
+      title: "Airgap Field Survival & KiCad PCB Studio",
+      subtitle: "Peukert's sub-zero battery derating, offline disaster manuals, and KiCad 8.0 netlists",
+      icon: ShieldAlert,
+      action: () => { navigate("/survival"); onClose(); },
+      badge: "Airgap",
     },
     {
       id: "tool-chat",

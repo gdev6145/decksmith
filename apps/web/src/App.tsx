@@ -29,6 +29,7 @@ import WiringHarnessStudio from "./pages/WiringHarnessStudio";
 import SdrRadioStudio from "./pages/SdrRadioStudio";
 import GpsTrackerStudio from "./pages/GpsTrackerStudio";
 import RouterStudio from "./pages/RouterStudio";
+import AirgapSurvivalStudio from "./pages/AirgapSurvivalStudio";
 
 function App() {
   return (
@@ -94,6 +95,10 @@ function App() {
           <Route path="networking" element={<RouterStudio />} />
           <Route path="gateway" element={<RouterStudio />} />
           <Route path="firewall" element={<RouterStudio />} />
+          <Route path="survival" element={<AirgapSurvivalStudio />} />
+          <Route path="airgap" element={<AirgapSurvivalStudio />} />
+          <Route path="kicad" element={<AirgapSurvivalStudio />} />
+          <Route path="offline" element={<AirgapSurvivalStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />
