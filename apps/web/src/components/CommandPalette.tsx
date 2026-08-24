@@ -215,6 +215,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "Airgap",
     },
     {
+      id: "tool-logic",
+      category: "Tools",
+      title: "Hardware Bus Sniffer & Logic Analyzer Studio",
+      subtitle: "I2C, SPI, UART digital waveform timing diagrams and PulseView exports",
+      icon: Activity,
+      action: () => { navigate("/logic"); onClose(); },
+      badge: "Logic",
+    },
+    {
       id: "tool-chat",
       category: "Tools",
       title: "AI Hardware Architect Chat",

@@ -30,6 +30,7 @@ import SdrRadioStudio from "./pages/SdrRadioStudio";
 import GpsTrackerStudio from "./pages/GpsTrackerStudio";
 import RouterStudio from "./pages/RouterStudio";
 import AirgapSurvivalStudio from "./pages/AirgapSurvivalStudio";
+import LogicAnalyzerStudio from "./pages/LogicAnalyzerStudio";
 
 function App() {
   return (
@@ -99,6 +100,10 @@ function App() {
           <Route path="airgap" element={<AirgapSurvivalStudio />} />
           <Route path="kicad" element={<AirgapSurvivalStudio />} />
           <Route path="offline" element={<AirgapSurvivalStudio />} />
+          <Route path="logic" element={<LogicAnalyzerStudio />} />
+          <Route path="sniffer" element={<LogicAnalyzerStudio />} />
+          <Route path="analyzer" element={<LogicAnalyzerStudio />} />
+          <Route path="bus" element={<LogicAnalyzerStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />
