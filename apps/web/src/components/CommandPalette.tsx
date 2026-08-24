@@ -21,6 +21,7 @@ import {
   Keyboard,
   Sun,
   Flame,
+  QrCode,
 } from "lucide-react";
 
 import { soundFx } from "../lib/soundFx";
@@ -137,6 +138,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       icon: Cpu,
       action: () => { navigate("/pinout"); onClose(); },
       badge: "GPIO",
+    },
+    {
+      id: "tool-scanner",
+      category: "Tools",
+      title: "Field QR Badge & Cyberdeck Scanner",
+      subtitle: "Scan physical cyberdeck QR badges to load BOM manifests and 3D CAD models",
+      icon: QrCode,
+      action: () => { navigate("/scan"); onClose(); },
+      badge: "Scanner",
     },
     {
       id: "tool-chat",

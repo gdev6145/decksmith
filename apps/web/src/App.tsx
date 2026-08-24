@@ -22,6 +22,7 @@ import SolarEnergyStudio from "./pages/SolarEnergyStudio";
 import RfLinkBudgetStudio from "./pages/RfLinkBudgetStudio";
 import CoolingThermalsStudio from "./pages/CoolingThermalsStudio";
 import PinoutStudio from "./pages/PinoutStudio";
+import QrScannerStudio from "./pages/QrScannerStudio";
 
 function App() {
   return (
@@ -60,6 +61,9 @@ function App() {
           <Route path="pinout" element={<PinoutStudio />} />
           <Route path="gpio" element={<PinoutStudio />} />
           <Route path="pins" element={<PinoutStudio />} />
+          <Route path="scan" element={<QrScannerStudio />} />
+          <Route path="scanner" element={<QrScannerStudio />} />
+          <Route path="qr" element={<QrScannerStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />
