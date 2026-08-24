@@ -22,6 +22,7 @@ import {
   Printer,
   Zap,
   Layers,
+  Compass,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -67,6 +68,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
     { path: "/power", label: "Power & USB-PD", badge: "BMS / AWG", icon: Zap, color: "text-yellow-400" },
     { path: "/harness", label: "Wiring Harness", badge: "Loom", icon: Layers, color: "text-cyan-400" },
     { path: "/sdr", label: "SDR & Radio", badge: "Spectrum", icon: Radio, color: "text-indigo-400" },
+    { path: "/gps", label: "GPS & Satellites", badge: "GNSS", icon: Compass, color: "text-neon-green" },
     { path: "/calculator", label: "RAID & NAS Calc", badge: "ZFS", icon: Calculator, color: "text-blue-400" },
     { path: "/parts", label: "Parts Catalog", badge: "50+ SBCs", icon: Cpu, color: "text-teal-400" },
     { path: "/chat", label: "AI Hardware Chat", badge: "LLM", icon: MessageSquare, color: "text-pink-400" },

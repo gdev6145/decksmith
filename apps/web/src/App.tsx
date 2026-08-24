@@ -27,6 +27,7 @@ import StlViewerStudio from "./pages/StlViewerStudio";
 import PowerDeliveryStudio from "./pages/PowerDeliveryStudio";
 import WiringHarnessStudio from "./pages/WiringHarnessStudio";
 import SdrRadioStudio from "./pages/SdrRadioStudio";
+import GpsTrackerStudio from "./pages/GpsTrackerStudio";
 
 function App() {
   return (
@@ -84,6 +85,10 @@ function App() {
           <Route path="spectrum" element={<SdrRadioStudio />} />
           <Route path="waterfall" element={<SdrRadioStudio />} />
           <Route path="radio" element={<SdrRadioStudio />} />
+          <Route path="gps" element={<GpsTrackerStudio />} />
+          <Route path="gnss" element={<GpsTrackerStudio />} />
+          <Route path="satellites" element={<GpsTrackerStudio />} />
+          <Route path="nmea" element={<GpsTrackerStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />

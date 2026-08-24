@@ -186,6 +186,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "SDR",
     },
     {
+      id: "tool-gps",
+      category: "Tools",
+      title: "Tactical GPS NMEA & Satellite Constellation HUD",
+      subtitle: "Polar skyplot constellation radar, NMEA-0183 decoder, and Stratum-1 NTP",
+      icon: Compass,
+      action: () => { navigate("/gps"); onClose(); },
+      badge: "GNSS",
+    },
+    {
       id: "tool-chat",
       category: "Tools",
       title: "AI Hardware Architect Chat",
