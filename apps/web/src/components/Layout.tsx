@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { MessageSquare, Wrench, Cpu, Home, Settings, Heart, Sun, Moon, Bell, Calculator, Sparkles, Crosshair, HardDrive, Activity, Search, Volume2, VolumeX, Menu, X } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import CommandPalette from "./CommandPalette";
+import MobileBottomNav from "./MobileBottomNav";
 import { soundFx } from "../lib/soundFx";
 
 const navItems = [
@@ -255,17 +256,20 @@ export default function Layout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 pb-24 md:pb-0">
         <Outlet />
       </main>
 
       {/* Footer */}
-      <footer className={`border-t ${theme === "light" ? "border-gray-200 bg-gray-100/30" : "border-gray-800 bg-gray-900/30"} py-6`}>
+      <footer className={`border-t ${theme === "light" ? "border-gray-200 bg-gray-100/30" : "border-gray-800 bg-gray-900/30"} py-6 mb-16 md:mb-0`}>
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
           <p>Decksmith - AI-Powered Cyberdeck Builder</p>
           <p className="mt-1">Build your dream portable computer</p>
         </div>
       </footer>
+
+      {/* Floating Mobile Bottom Navigation Dock (Mobile Only) */}
+      <MobileBottomNav onOpenCommandPalette={() => setShowCommandPalette(true)} />
 
       {/* Global Command Palette (Ctrl+K / Cmd+K) */}
       <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
