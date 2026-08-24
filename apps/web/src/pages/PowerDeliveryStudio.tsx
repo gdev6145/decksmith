@@ -19,6 +19,8 @@ import {
   Cpu,
   Flame,
   Radio,
+  Lock,
+  Wrench,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -61,38 +63,57 @@ export default function PowerDeliveryStudio() {
   const [wireAwg, setWireAwg] = useState<number>(20);
   const [wireLengthCm, setWireLengthCm] = useState<number>(25);
 
+  // Decoupling & Protection Toggles
+  const [hasDecouplingCap, setHasDecouplingCap] = useState<boolean>(true);
+  const [hasTvsDiode, setHasTvsDiode] = useState<boolean>(true);
+  const [hasPolyfuse, setHasPolyfuse] = useState<boolean>(true);
+
+  // USB-PD Sink Decoy Configuration
   const [pdTriggerChip, setPdTriggerChip] = useState<"ch224k" | "ip2721" | "ip5328p">("ch224k");
-  const [copiedHarness, setCopiedHarness] = useState<boolean>(false);
+  const [copiedNetlist, setCopiedNetlist] = useState<boolean>(false);
 
   const selectedSource = POWER_SOURCES.find((s) => s.id === sourceId) || POWER_SOURCES[0];
 
-  // Power Calculations
+  // Comprehensive Power Calculations
   const powerMetrics = useMemo(() => {
-    // 5.1V Rail (Buck converter @ 92% efficiency)
+    // Rail Powers
     const sbcPowerW = 5.1 * sbcCurrentA;
-    const sbcInputPowerW = sbcPowerW / 0.92;
-
-    // 12.0V Rail (Buck or Boost @ 90% efficiency)
     const displayPowerW = 12.0 * displayCurrentA;
-    const displayInputPowerW = displayPowerW / 0.90;
-
-    // 3.3V Rail (LDO regulator from 5V @ 65% efficiency)
     const sensorPowerW = 3.3 * sensorCurrentA;
-    const sensorInputPowerW = sensorPowerW / 0.65;
-
     const totalOutputPowerW = sbcPowerW + displayPowerW + sensorPowerW;
+
+    // Converter Efficiency (Buck 92%, Boost 88%, LDO 70%)
+    const sbcInputPowerW = sbcPowerW / 0.92;
+    const displayInputPowerW = displayPowerW / (selectedSource.nominalVoltage < 12 ? 0.88 : 0.94);
+    const sensorInputPowerW = sensorPowerW / 0.75;
     const totalInputPowerW = sbcInputPowerW + displayInputPowerW + sensorInputPowerW;
     const overallEfficiencyPct = (totalOutputPowerW / totalInputPowerW) * 100;
-
     const sourceCurrentDrawA = totalInputPowerW / selectedSource.nominalVoltage;
 
-    // Wire Harness Resistance & Voltage Drop for SBC 5V rail
+    // Wire Harness Voltage Drop
     const awgSpec = AWG_TABLE[wireAwg] || AWG_TABLE[20];
     const wireLengthM = (wireLengthCm * 2) / 100; // Loop (VCC + GND return)
     const harnessResistanceOhms = (awgSpec.mOhmsPerMeter / 1000) * wireLengthM;
     const sbcVoltageDropV = sbcCurrentA * harnessResistanceOhms;
     const deliveredSbcVoltageV = 5.1 - sbcVoltageDropV;
     const isUnderVoltage = deliveredSbcVoltageV < 4.85;
+
+    // Step-Load Transient Droop (+2.0A transient burst)
+    const stepTransientCurrentA = 2.0;
+    const transientDroopV = stepTransientCurrentA * (harnessResistanceOhms + (hasDecouplingCap ? 0.015 : 0.085));
+    const minBurstVoltageV = deliveredSbcVoltageV - transientDroopV;
+    const isBurstBrownout = minBurstVoltageV < 4.75;
+
+    // Recommended Low-ESR Decoupling Cap size (in uF)
+    const recommendedCapUf = Math.max(470, Math.round((stepTransientCurrentA * 0.0001 / 0.15) * 1000000));
+
+    // Survivability & Right-to-Repair Scorecard (0-100)
+    let score = 50;
+    if (!isUnderVoltage) score += 15;
+    if (!isBurstBrownout) score += 15;
+    if (hasDecouplingCap) score += 10;
+    if (hasTvsDiode) score += 5;
+    if (hasPolyfuse) score += 5;
 
     return {
       totalOutputPowerW: Number(totalOutputPowerW.toFixed(1)),
@@ -103,28 +124,38 @@ export default function PowerDeliveryStudio() {
       sbcVoltageDropV: Number(sbcVoltageDropV.toFixed(3)),
       deliveredSbcVoltageV: Number(deliveredSbcVoltageV.toFixed(3)),
       isUnderVoltage,
+      transientDroopV: Number(transientDroopV.toFixed(3)),
+      minBurstVoltageV: Number(minBurstVoltageV.toFixed(3)),
+      isBurstBrownout,
+      recommendedCapUf,
+      survivabilityScore: Math.min(100, score),
       maxWireCurrentA: awgSpec.maxCurrentA,
       isWireOverloaded: sbcCurrentA > awgSpec.maxCurrentA,
     };
-  }, [selectedSource, sbcCurrentA, displayCurrentA, sensorCurrentA, wireAwg, wireLengthCm]);
+  }, [selectedSource, sbcCurrentA, displayCurrentA, sensorCurrentA, wireAwg, wireLengthCm, hasDecouplingCap, hasTvsDiode, hasPolyfuse]);
 
   const harnessTableAscii = useMemo(() => {
-    return `# Decksmith Tactical Power & Harness Netlist
+    return `# Decksmith Tactical Power & Field Survivability Netlist
 # Source: ${selectedSource.name}
-# System Input Power: ${powerMetrics.totalInputPowerW}W @ ${selectedSource.nominalVoltage}V
-# Efficiency: ${powerMetrics.overallEfficiencyPct}%
+# Input Power: ${powerMetrics.totalInputPowerW}W @ ${selectedSource.nominalVoltage}V
+# Efficiency: ${powerMetrics.overallEfficiencyPct}% · Survivability Grade: ${powerMetrics.survivabilityScore}/100
 
-[POWER DISTRIBUTION BUS]
-Rail 1: 5.1V @ ${sbcCurrentA}A (SBC / SoC) -> Wire: ${wireAwg} AWG (${wireLengthCm}cm) -> Delivered: ${powerMetrics.deliveredSbcVoltageV}V
-Rail 2: 12.0V @ ${displayCurrentA}A (Bar Display / SDR) -> Buck/Boost -> ${12.0 * displayCurrentA}W
-Rail 3: 3.3V @ ${sensorCurrentA}A (LoRa / GPS / RTC) -> Ultra-Low Noise LDO -> ${3.3 * sensorCurrentA}W
+[POWER RAILS]
+Rail 1: 5.1V @ ${sbcCurrentA}A (SBC / SoC) -> Wire: ${wireAwg} AWG (${wireLengthCm}cm) -> Delivered: ${powerMetrics.deliveredSbcVoltageV}V (Burst Min: ${powerMetrics.minBurstVoltageV}V)
+Rail 2: 12.0V @ ${displayCurrentA}A (Bar Display / SDR) -> Buck/Boost -> ${(12.0 * displayCurrentA).toFixed(1)}W
+Rail 3: 3.3V @ ${sensorCurrentA}A (LoRa / GPS / RTC) -> Ultra-Low Noise LDO -> ${(3.3 * sensorCurrentA).toFixed(1)}W
 
-[USB-C PD TRIGGER CONFIG (${pdTriggerChip.toUpperCase()})]
+[TRANSIENT & BROWNOUT MITIGATION]
+Bulk Decoupling: ${hasDecouplingCap ? `${powerMetrics.recommendedCapUf}µF Solid Polymer (Low-ESR <15mΩ)` : "NONE (⚠️ High brownout risk)"}
+Transient Suppressor: ${hasTvsDiode ? "SMAJ5.0A Bidirectional TVS Diode Active" : "NONE"}
+Overcurrent Polyfuse: ${hasPolyfuse ? "5.0A Resettable PTC Fuse Active" : "NONE"}
+
+[USB-C PD SINK TRIGGER (${pdTriggerChip.toUpperCase()})]
 CFG1: Pulled to VCC via 4.7kΩ (Requests 20V/12V PD Profile)
 CFG2: Connected to GND
 CC1/CC2: 5.1kΩ Pull-down resistors to GND (UFP Sink mode)
 `;
-  }, [selectedSource, powerMetrics, sbcCurrentA, displayCurrentA, sensorCurrentA, wireAwg, wireLengthCm, pdTriggerChip]);
+  }, [selectedSource, powerMetrics, sbcCurrentA, displayCurrentA, sensorCurrentA, wireAwg, wireLengthCm, pdTriggerChip, hasDecouplingCap, hasTvsDiode, hasPolyfuse]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -135,14 +166,14 @@ CC1/CC2: 5.1kΩ Pull-down resistors to GND (UFP Sink mode)
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
               Power Delivery & BMS Studio
             </span>
-            <span className="text-xs font-mono text-neon-green">USB-PD 3.0 · Multi-Rail Tree · AWG Drop Simulator</span>
+            <span className="text-xs font-mono text-neon-green">Brownout Prevention · AWG Voltage Drop · Solid Polymer Caps</span>
           </div>
           <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
             <Zap className="w-7 h-7 text-yellow-400" />
-            Tactical Power Delivery & USB-PD / BMS Studio
+            Tactical Power Delivery & Brownout Defense Studio
           </h1>
           <p className="text-sm text-gray-400 mt-1">
-            Simulate multi-voltage DC power trees, calculate AWG harness voltage drops, configure USB-C PD sink triggers, and ensure zero under-voltage throttling.
+            Simulate multi-voltage DC power trees, calculate AWG harness voltage drops, model step-load transient brownouts, and configure USB-C PD sink triggers.
           </p>
         </div>
 
@@ -168,41 +199,37 @@ CC1/CC2: 5.1kΩ Pull-down resistors to GND (UFP Sink mode)
       {/* Top 4 KPI Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Total Power Draw</span>
-          <div className="text-2xl font-black text-yellow-400 font-mono">{powerMetrics.totalInputPowerW} Watts</div>
-          <span className="text-xs text-gray-400 font-mono">Source Current: {powerMetrics.sourceCurrentDrawA}A @ {selectedSource.nominalVoltage}V</span>
+          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Survivability Grade</span>
+          <div className="text-2xl font-black text-neon-green font-mono">{powerMetrics.survivabilityScore} / 100</div>
+          <span className="text-xs text-gray-400 font-mono">
+            {powerMetrics.survivabilityScore >= 90 ? "🟢 Military / Field Grade" : "🟡 Advisory Warnings Present"}
+          </span>
         </div>
 
         <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Overall Power Tree Efficiency</span>
-          <div className="text-2xl font-black text-neon-green font-mono">{powerMetrics.overallEfficiencyPct}%</div>
-          <span className="text-xs text-gray-400 font-mono">Useful Payload: {powerMetrics.totalOutputPowerW}W</span>
-        </div>
-
-        <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">SBC Delivered Voltage</span>
-          <div className={`text-2xl font-black font-mono ${powerMetrics.isUnderVoltage ? "text-rose-400" : "text-cyan-400"}`}>
+          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">5.1V Delivered SoC Voltage</span>
+          <div className={`text-2xl font-black font-mono ${powerMetrics.isUnderVoltage ? "text-rose-500" : "text-cyan-400"}`}>
             {powerMetrics.deliveredSbcVoltageV} V
           </div>
-          <span className="text-xs text-gray-400 font-mono">Drop: -{powerMetrics.sbcVoltageDropV}V ({powerMetrics.harnessResistanceMOhms}mΩ loop)</span>
+          <span className="text-xs text-gray-400 font-mono">
+            Drop: -{powerMetrics.sbcVoltageDropV}V (Loop: {powerMetrics.harnessResistanceMOhms}mΩ)
+          </span>
         </div>
 
         <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">RPi 5 Under-Voltage Status</span>
-          <div className="flex items-center gap-1.5">
-            {powerMetrics.isUnderVoltage ? (
-              <span className="text-sm font-bold text-rose-400 flex items-center gap-1 font-mono">
-                <AlertTriangle className="w-4 h-4" /> &lt;4.85V Throttle Risk!
-              </span>
-            ) : (
-              <span className="text-sm font-bold text-neon-green flex items-center gap-1 font-mono">
-                <CheckCircle2 className="w-4 h-4" /> Stable (Zero Throttling)
-              </span>
-            )}
+          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Burst Transient Floor</span>
+          <div className={`text-2xl font-black font-mono ${powerMetrics.isBurstBrownout ? "text-rose-500" : "text-yellow-400"}`}>
+            {powerMetrics.minBurstVoltageV} V
           </div>
           <span className="text-xs text-gray-400 font-mono">
-            {powerMetrics.isWireOverloaded ? "⚠️ Wire AWG Overloaded" : "Wire Gauge Safe"}
+            {powerMetrics.isBurstBrownout ? "⚠️ Brownout Risk (<4.75V)" : "Stable Transient Floor"}
           </span>
+        </div>
+
+        <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
+          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Recommended Decoupling Cap</span>
+          <div className="text-2xl font-black text-purple-400 font-mono">{powerMetrics.recommendedCapUf} µF</div>
+          <span className="text-xs text-gray-400 font-mono">Solid Polymer (Low-ESR &lt;15mΩ)</span>
         </div>
       </div>
 
@@ -335,6 +362,54 @@ CC1/CC2: 5.1kΩ Pull-down resistors to GND (UFP Sink mode)
               </div>
             </div>
           </div>
+
+          {/* Field Protection Hardware Toggles */}
+          <div className="space-y-3 pt-2 border-t border-gray-800">
+            <h4 className="text-xs font-mono font-bold text-gray-300 uppercase">Field Hardening & Circuit Protection</h4>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  setHasDecouplingCap((prev) => !prev);
+                }}
+                className={`p-2.5 rounded-xl border text-xs font-mono text-center transition-all ${
+                  hasDecouplingCap
+                    ? "border-neon-green bg-emerald-950/40 text-white font-bold"
+                    : "border-gray-800 bg-gray-950 text-gray-400"
+                }`}
+              >
+                Polymer Cap
+              </button>
+
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  setHasTvsDiode((prev) => !prev);
+                }}
+                className={`p-2.5 rounded-xl border text-xs font-mono text-center transition-all ${
+                  hasTvsDiode
+                    ? "border-cyan-400 bg-cyan-950/40 text-white font-bold"
+                    : "border-gray-800 bg-gray-950 text-gray-400"
+                }`}
+              >
+                TVS ESD Diode
+              </button>
+
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  setHasPolyfuse((prev) => !prev);
+                }}
+                className={`p-2.5 rounded-xl border text-xs font-mono text-center transition-all ${
+                  hasPolyfuse
+                    ? "border-yellow-400 bg-yellow-950/40 text-white font-bold"
+                    : "border-gray-800 bg-gray-950 text-gray-400"
+                }`}
+              >
+                PTC Polyfuse
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Right: USB-C PD Sink Trigger Config & Harness Netlist */}
@@ -348,51 +423,51 @@ CC1/CC2: 5.1kΩ Pull-down resistors to GND (UFP Sink mode)
               <select
                 value={pdTriggerChip}
                 onChange={(e) => setPdTriggerChip(e.target.value as any)}
-                className="bg-gray-950 border border-gray-700 rounded-lg px-2 py-1 text-xs text-yellow-300 font-mono font-bold"
+                className="bg-gray-950 border border-gray-700 rounded-lg px-2 py-1 text-xs font-mono text-yellow-400 font-bold"
               >
-                <option value="ch224k">WCH CH224K</option>
-                <option value="ip2721">Injoinic IP2721</option>
-                <option value="ip5328p">Injoinic IP5328P (BMS+PD)</option>
+                <option value="ch224k">CH224K (Auto-PD/QC)</option>
+                <option value="ip2721">IP2721 (Hardware Resistor)</option>
+                <option value="ip5328p">IP5328P (BMS + PD SoC)</option>
               </select>
             </div>
 
             <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-2 text-xs font-mono">
               <div className="flex justify-between">
-                <span className="text-gray-400">Target Voltage Profile:</span>
-                <span className="text-yellow-400 font-bold">{selectedSource.nominalVoltage}V Output</span>
+                <span className="text-gray-400">Trigger Profile:</span>
+                <span className="text-neon-green font-bold">20V @ 5A (100W PD 3.0)</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Protocol Support:</span>
-                <span className="text-cyan-400 font-bold">PD 3.0 / QC 3.0 / PPS</span>
+                <span className="text-gray-400">Decoy IC Pinout:</span>
+                <span className="text-cyan-300 font-bold">ESSOP-10 (Ultra-Compact)</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">CC1 / CC2 Pull-Down:</span>
-                <span className="text-neon-green font-bold">5.1 kΩ 1% to GND</span>
+                <span className="text-gray-400">CC Resistors:</span>
+                <span className="text-yellow-400 font-bold">5.1kΩ ±1% to GND</span>
               </div>
             </div>
           </div>
 
-          {/* Exportable ASCII Wiring Table */}
+          {/* Tactical Harness Netlist Exporter */}
           <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 space-y-4 shadow-2xl">
             <div className="flex items-center justify-between border-b border-gray-800 pb-3">
               <h3 className="text-sm font-bold text-white font-mono uppercase">
-                Power Harness Netlist Table
+                Tactical Power Netlist
               </h3>
               <button
                 onClick={() => {
                   soundFx.playConfirm();
                   navigator.clipboard.writeText(harnessTableAscii);
-                  setCopiedHarness(true);
-                  setTimeout(() => setCopiedHarness(false), 2000);
+                  setCopiedNetlist(true);
+                  setTimeout(() => setCopiedNetlist(false), 2000);
                 }}
                 className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 font-mono flex items-center gap-1"
               >
-                {copiedHarness ? <Check className="w-3 h-3 text-neon-green" /> : <Copy className="w-3 h-3" />}
-                {copiedHarness ? "Copied" : "Copy"}
+                {copiedNetlist ? <Check className="w-3 h-3 text-neon-green" /> : <Copy className="w-3 h-3" />}
+                {copiedNetlist ? "Copied" : "Copy"}
               </button>
             </div>
 
-            <pre className="p-4 bg-gray-950 rounded-xl border border-gray-800 text-xs font-mono text-yellow-300 overflow-x-auto leading-relaxed select-all">
+            <pre className="p-4 bg-gray-950 rounded-xl border border-gray-800 text-xs font-mono text-yellow-300 overflow-x-auto leading-relaxed select-all max-h-64">
               {harnessTableAscii}
             </pre>
           </div>
