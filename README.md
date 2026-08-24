@@ -107,6 +107,28 @@ Open [http://localhost:3001](http://localhost:3001) in your browser.
 
 ---
 
+## 🐳 Docker Deployment (1-Click Homelab / Self-Hosted)
+
+Run Decksmith anywhere with zero setup:
+
+```bash
+docker compose up -d
+```
+
+Open [http://localhost:3001](http://localhost:3001).
+
+---
+
+## 📚 Technical Documentation Hub
+
+- [🏛️ Architecture & System Design](docs/ARCHITECTURE.md)
+- [🔌 40-Pin GPIO & Bus Allocation Guide](docs/HARDWARE_PINOUT_GUIDE.md)
+- [🛸 Verified Cyberdeck Archetypes Catalog](docs/COMMUNITY_BLUEPRINTS.md)
+- [🤝 Contributing Guidelines](CONTRIBUTING.md)
+- [🛡️ Security Policy](SECURITY.md)
+
+---
+
 ## 📦 Monorepo Architecture
 
 ```
@@ -135,4 +157,5 @@ decksmith/
 
 ## 📜 License
 
-MIT License © 2026 Decksmith Open-Source Engineering Group
+MIT License © 2026 Silas Malone & Decksmith Contributors
+

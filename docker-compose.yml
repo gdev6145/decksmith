@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  decksmith:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: decksmith-app
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=file:./dev.db
+      - NODE_ENV=production
+    volumes:
+      - decksmith-data:/app/prisma
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/parts"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  decksmith-data:
