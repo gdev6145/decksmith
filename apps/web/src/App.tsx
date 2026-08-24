@@ -23,6 +23,7 @@ import RfLinkBudgetStudio from "./pages/RfLinkBudgetStudio";
 import CoolingThermalsStudio from "./pages/CoolingThermalsStudio";
 import PinoutStudio from "./pages/PinoutStudio";
 import QrScannerStudio from "./pages/QrScannerStudio";
+import StlViewerStudio from "./pages/StlViewerStudio";
 
 function App() {
   return (
@@ -64,6 +65,10 @@ function App() {
           <Route path="scan" element={<QrScannerStudio />} />
           <Route path="scanner" element={<QrScannerStudio />} />
           <Route path="qr" element={<QrScannerStudio />} />
+          <Route path="stl" element={<StlViewerStudio />} />
+          <Route path="stl-viewer" element={<StlViewerStudio />} />
+          <Route path="mesh" element={<StlViewerStudio />} />
+          <Route path="3d-print" element={<StlViewerStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />

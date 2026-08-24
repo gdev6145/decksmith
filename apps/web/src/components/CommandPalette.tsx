@@ -22,6 +22,7 @@ import {
   Sun,
   Flame,
   QrCode,
+  Printer,
 } from "lucide-react";
 
 import { soundFx } from "../lib/soundFx";
@@ -147,6 +148,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       icon: QrCode,
       action: () => { navigate("/scan"); onClose(); },
       badge: "Scanner",
+    },
+    {
+      id: "tool-stl",
+      category: "Tools",
+      title: "3D Printable STL & Mesh Slicer Studio",
+      subtitle: "Inspect STL models, simulate infill, and calculate filament mass and print cost",
+      icon: Printer,
+      action: () => { navigate("/stl"); onClose(); },
+      badge: "3D Print",
     },
     {
       id: "tool-chat",
