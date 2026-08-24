@@ -1,0 +1,24 @@
+{
+  "name": "@decksmith/scraper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "scrape:ali": "tsx src/aliexpress.ts",
+    "scrape:amazon": "tsx src/amazon.ts",
+    "scrape:adafruit": "tsx src/index.ts adafruit",
+    "scrape:all": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@decksmith/database": "workspace:*",
+    "playwright": "^1.40.0",
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,41 @@
+node_modules/
+dist/
+build/
+.dist/
+.output/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# SQLite & Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/*.db
+prisma/*.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Framework caches
+.next/
+.turbo/
+.vite/
+.astro/
+.cache/
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+

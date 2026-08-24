@@ -1,0 +1,16 @@
+{
+  "name": "@decksmith/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Decksmith desktop app",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "typecheck": "echo 'no typecheck'"
+  },
+  "dependencies": {
+    "electron": "^43.0.0"
+  }
+}

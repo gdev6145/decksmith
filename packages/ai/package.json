@@ -1,0 +1,23 @@
+{
+  "name": "@decksmith/ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@decksmith/shared": "workspace:*",
+    "ai": "^7.0.0",
+    "@ai-sdk/openai": "^4.0.0",
+    "@ai-sdk/anthropic": "^4.0.0",
+    "@ai-sdk/google": "^4.0.0",
+    "ai-sdk-ollama": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  }
+}

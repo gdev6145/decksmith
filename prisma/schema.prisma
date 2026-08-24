@@ -1,0 +1,355 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String       @id @default(cuid())
+  email      String       @unique
+  name       String?
+  avatar     String?
+  builds     Build[]
+  chats      ChatSession[]
+  reviews    Review[]
+  comments   Comment[]
+  questions  Question[]
+  answers    Answer[]
+  activities Activity[]
+  notifications Notification[]
+  alerts     Alert[]
+  benchmarks Benchmark[]
+  wishlists  Wishlist[]
+  challenges Challenge[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, partId])
+  @@index([userId])
+}
+
+model Part {
+  id            String       @id @default(cuid())
+  name          String
+  slug          String       @unique
+  category      String
+  description   String?
+  specs         String?      // JSON stored as string for SQLite
+  images        String       @default("[]") // JSON array stored as string
+  compatibility String       @default("[]") // JSON array stored as string
+  rating        Float        @default(0)
+  reviewCount   Int          @default(0)
+  prices        Price[]
+  buildParts    BuildPart[]
+  reviews       Review[]
+  questions     Question[]
+  priceHistory  PriceHistory[]
+  benchmarks    Benchmark[]
+  alerts        Alert[]
+  wishlists     Wishlist[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([category])
+  @@index([slug])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  title     String?
+  content   String?
+  createdAt DateTime @default(now())
+
+  @@unique([partId, userId])
+  @@index([partId])
+}
+
+model Price {
+  id        String   @id @default(cuid())
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  source    String
+  price     Float
+  currency  String   @default("USD")
+  url       String
+  image     String?
+  inStock   Boolean  @default(true)
+  scrapedAt DateTime @default(now())
+
+  @@index([partId])
+  @@index([source])
+}
+
+model Build {
+  id          String           @id @default(cuid())
+  title       String
+  slug        String           @unique
+  description String?
+  type        String
+  tags        String           @default("[]") // JSON array stored as string
+  budget      Float?
+  images      String           @default("[]") // JSON array stored as string
+  upvotes     Int              @default(0)
+  views       Int              @default(0)
+  authorId    String
+  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    BuildCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  parts       BuildPart[]
+  guides      Guide[]
+  versions    BuildVersion[]
+  comments    Comment[]
+  timeLogs    TimeLog[]
+  activities  Activity[]
+  notifications Notification[]
+  challenges  Challenge[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([type])
+  @@index([authorId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  buildId   String
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([buildId])
+}
+
+model BuildVersion {
+  id        String   @id @default(cuid())
+  buildId   String
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  version   Int
+  snapshot  String   // JSON: { title, description, type, tags, parts: [...] }
+  label     String?
+  createdAt DateTime @default(now())
+
+  @@index([buildId])
+  @@unique([buildId, version])
+}
+
+model BuildPart {
+  id          String   @id @default(cuid())
+  buildId     String
+  build       Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  partId      String
+  part        Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  quantity    Int      @default(1)
+  notes       String?
+  role        String?
+  actualPrice Float?
+  purchased   Boolean  @default(false)
+  status      String   @default("pending") // pending, acquired, installed, tested
+
+  @@unique([buildId, partId])
+}
+
+model Guide {
+  id        String      @id @default(cuid())
+  buildId   String
+  build     Build       @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  title     String
+  steps     String      // JSON stored as string
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([buildId])
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String?
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  context   String?       // JSON stored as string
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  metadata  String?     // JSON stored as string
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+}
+
+model Activity {
+  id        String    @id @default(cuid())
+  buildId   String
+  build     Build     @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String    // "part_added", "part_removed", "comment", "review", "edit", "fork", "version"
+  details   String?   // JSON stored as string
+  createdAt DateTime  @default(now())
+
+  @@index([buildId])
+  @@index([userId])
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  buildId     String
+  build       Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes       Int      @default(0)
+  status      String   // "open", "closed", "won"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([buildId])
+  @@index([userId])
+}
+
+model Question {
+  id        String   @id @default(cuid())
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  upvotes   Int      @default(0)
+  answers   Answer[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([partId])
+  @@index([userId])
+}
+
+model Answer {
+  id         String    @id @default(cuid())
+  questionId String
+  question   Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content    String
+  upvotes    Int       @default(0)
+  accepted   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([questionId])
+  @@index([userId])
+}
+
+model TimeLog {
+  id          String   @id @default(cuid())
+  buildId     String
+  build       Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  hours       Float
+  description String?
+  loggedAt    DateTime @default(now())
+
+  @@index([buildId])
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  minPrice  Float
+  currency  String   @default("USD")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([partId])
+  @@index([userId])
+  @@index([active])
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  source    String
+  price     Float
+  currency  String   @default("USD")
+  url       String
+  scrapedAt DateTime @default(now())
+
+  @@index([partId])
+  @@index([scrapedAt])
+}
+
+model Benchmark {
+  id        String   @id @default(cuid())
+  partId    String
+  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test      String   // "cpu_score", "gpu_score", "memory_bandwidth", "disk_speed", "network_speed", "power_draw"
+  value     Float
+  unit      String   // "points", "MB/s", "Mbps", "watts", "seconds"
+  config    String?  // JSON: test conditions (os, compiler, settings)
+  createdAt DateTime @default(now())
+
+  @@index([partId])
+  @@index([test])
+}
+
+model BuildCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  builds      Build[]
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buildId   String?
+  build     Build?   @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  type      String   // "comment", "part_added", "fork", "mention"
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  url       String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}

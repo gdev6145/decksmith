@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Decksmith
+Comment=AI-Powered Cyberdeck Builder
+Exec="/home/ghost/Documents/Default Project/decksmith/scripts/launch-desktop.sh"
+Path=/home/ghost/Documents/Default Project/decksmith
+Icon=decksmith
+Terminal=false
+Categories=Development;
+Keywords=cyberdeck;raspberry;deck;builder;
+StartupWMClass=Decksmith
+StartupNotify=true

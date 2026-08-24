@@ -1,0 +1,29 @@
+{
+  "name": "decksmith",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered cyberdeck builder - chat with AI about custom builds",
+  "scripts": {
+    "dev": "pnpm --filter @decksmith/web dev",
+    "dev:api": "pnpm --filter @decksmith/api dev",
+    "dev:all": "pnpm run dev:api & pnpm run dev",
+    "build": "pnpm --filter @decksmith/web build",
+    "db:generate": "prisma generate --schema=./prisma/schema.prisma",
+    "db:push": "prisma db push --schema=./prisma/schema.prisma",
+    "db:seed": "pnpm --filter @decksmith/database db:seed",
+    "scrape": "pnpm --filter @decksmith/scraper scrape:all",
+    "scrape:ali": "pnpm --filter @decksmith/scraper scrape:ali",
+    "scrape:amazon": "pnpm --filter @decksmith/scraper scrape:amazon",
+    "desktop": "./scripts/launch-desktop.sh",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@prisma/client": "6.19.3",
+    "prisma": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18",
+    "pnpm": ">=8"
+  }
+}
