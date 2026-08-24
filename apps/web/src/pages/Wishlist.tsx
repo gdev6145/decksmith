@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Heart, Trash2, Loader2, Star, ExternalLink } from "lucide-react";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { API_URL } from "../lib/config";
 
 interface WishlistItem {
   id: string;

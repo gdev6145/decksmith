@@ -3,8 +3,7 @@ import { Link } from "react-router-dom";
 import { Plus, Heart, Eye, Tag, Trash2, Loader2, Zap, Battery, DollarSign, Weight, AlertTriangle, AlertCircle, Info, Search, Clock, GitFork, GitCompareArrows, Trophy, Sparkles } from "lucide-react";
 import { BUILD_TYPES } from "@decksmith/shared";
 import BuildImage from "../components/BuildImage";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { API_URL } from "../lib/config";
 
 interface BuildPartData {
   id: string;

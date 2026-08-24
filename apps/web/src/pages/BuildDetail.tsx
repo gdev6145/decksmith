@@ -9,8 +9,7 @@ import {
 import BuildImage from "../components/BuildImage";
 import CostBreakdown from "../components/CostBreakdown";
 import RaidCalculator, { RaidLevel } from "../components/RaidCalculator";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { API_URL } from "../lib/config";
 
 interface PartData {
   id: string;

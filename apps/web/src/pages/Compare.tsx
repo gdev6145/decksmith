@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Loader2, Zap, Battery, DollarSign, Weight, Clock, Star, GitCompareArrows } from "lucide-react";
 import BuildImage from "../components/BuildImage";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { API_URL } from "../lib/config";
 
 interface BuildData {
   id: string;

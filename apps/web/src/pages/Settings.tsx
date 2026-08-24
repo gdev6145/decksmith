@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { User, Save, Loader2 } from "lucide-react";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { API_URL } from "../lib/config";
 
 interface UserData {
   id: string;

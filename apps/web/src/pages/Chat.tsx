@@ -2,8 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Send, Bot, User, Loader2, Settings, Plus, Trash2, MessageSquare, ExternalLink } from "lucide-react";
 import type { ChatMessage, AIProvider, AIModel } from "@decksmith/shared";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
+import { API_URL } from "../lib/config";
 
 const WELCOME_MESSAGE: ChatMessage = {
   id: "welcome",

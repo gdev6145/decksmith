@@ -18,6 +18,7 @@ import {
   Terminal,
   Calculator,
 } from "lucide-react";
+import { API_URL } from "../lib/config";
 
 const studioSuites = [
   {
@@ -88,8 +89,6 @@ const stats = [
   { label: "BMS & Batteries", value: "25+", icon: Battery },
   { label: "Fabrication Formats", value: "DXF · STL · SCAD", icon: FileCode },
 ];
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
 const templates = [
   {
