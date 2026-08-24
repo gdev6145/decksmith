@@ -24,6 +24,7 @@ import CoolingThermalsStudio from "./pages/CoolingThermalsStudio";
 import PinoutStudio from "./pages/PinoutStudio";
 import QrScannerStudio from "./pages/QrScannerStudio";
 import StlViewerStudio from "./pages/StlViewerStudio";
+import PowerDeliveryStudio from "./pages/PowerDeliveryStudio";
 
 function App() {
   return (
@@ -69,6 +70,10 @@ function App() {
           <Route path="stl-viewer" element={<StlViewerStudio />} />
           <Route path="mesh" element={<StlViewerStudio />} />
           <Route path="3d-print" element={<StlViewerStudio />} />
+          <Route path="power" element={<PowerDeliveryStudio />} />
+          <Route path="power-studio" element={<PowerDeliveryStudio />} />
+          <Route path="bms" element={<PowerDeliveryStudio />} />
+          <Route path="pd" element={<PowerDeliveryStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />

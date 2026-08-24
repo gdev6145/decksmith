@@ -159,6 +159,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "3D Print",
     },
     {
+      id: "tool-power",
+      category: "Tools",
+      title: "Tactical Power Delivery & USB-PD / BMS Studio",
+      subtitle: "Multi-rail DC power tree, AWG wire drop calculator, and USB-C PD sink triggers",
+      icon: Zap,
+      action: () => { navigate("/power"); onClose(); },
+      badge: "Power",
+    },
+    {
       id: "tool-chat",
       category: "Tools",
       title: "AI Hardware Architect Chat",

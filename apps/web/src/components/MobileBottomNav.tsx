@@ -20,6 +20,7 @@ import {
   VolumeX,
   QrCode,
   Printer,
+  Zap,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -62,6 +63,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
     { path: "/pinout", label: "40-Pin GPIO", badge: "Pinout", icon: Cpu, color: "text-cyan-300" },
     { path: "/scan", label: "Field Scanner", badge: "QR Code", icon: QrCode, color: "text-emerald-400" },
     { path: "/stl", label: "3D Print STL", badge: "Slicer", icon: Printer, color: "text-yellow-400" },
+    { path: "/power", label: "Power & USB-PD", badge: "BMS / AWG", icon: Zap, color: "text-yellow-400" },
     { path: "/calculator", label: "RAID & NAS Calc", badge: "ZFS", icon: Calculator, color: "text-blue-400" },
     { path: "/parts", label: "Parts Catalog", badge: "50+ SBCs", icon: Cpu, color: "text-teal-400" },
     { path: "/chat", label: "AI Hardware Chat", badge: "LLM", icon: MessageSquare, color: "text-pink-400" },
