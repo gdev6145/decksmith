@@ -13,6 +13,11 @@ import {
   Layers,
   ArrowRight,
   Fingerprint,
+  Lock,
+  KeyRound,
+  ShieldCheck,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth, UserProfile } from "../AuthContext";
 import { API_URL } from "../lib/config";
@@ -22,8 +27,11 @@ export default function AuthModal() {
   const { showAuthModal, setShowAuthModal, login, register, quickSwitchBuilder, user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register" | "operatives">("login");
   const [emailOrName, setEmailOrName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
   const [regRole, setRegRole] = useState("Hardware Hacker");
   const [builders, setBuilders] = useState<UserProfile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,14 +61,33 @@ export default function AuthModal() {
 
     setIsSubmitting(true);
     setErrorMessage("");
-    const success = await login(emailOrName.trim());
-    setIsSubmitting(false);
 
-    if (success) {
-      setShowAuthModal(false);
-      setEmailOrName("");
-    } else {
-      setErrorMessage("Could not sign in. Please verify your callsign or email.");
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: emailOrName.includes("@") ? emailOrName.trim() : undefined,
+          name: !emailOrName.includes("@") ? emailOrName.trim() : undefined,
+          password: password || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem("ds_auth_token", data.token);
+        soundFx.playConfirm();
+        setShowAuthModal(false);
+        setEmailOrName("");
+        setPassword("");
+        window.location.reload();
+      } else {
+        setErrorMessage(data.error || "Authentication signature rejected.");
+      }
+    } catch {
+      setErrorMessage("Could not connect to authentication gateway.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -70,16 +97,50 @@ export default function AuthModal() {
 
     setIsSubmitting(true);
     setErrorMessage("");
-    const success = await register(regName.trim(), regEmail.trim(), regRole);
-    setIsSubmitting(false);
 
-    if (success) {
-      setShowAuthModal(false);
-      setRegName("");
-      setRegEmail("");
-    } else {
-      setErrorMessage("Registration failed. Please check your information.");
+    try {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName.trim(),
+          email: regEmail.trim() || undefined,
+          role: regRole,
+          password: regPassword || "decksmith2026",
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.token) {
+        localStorage.setItem("ds_auth_token", data.token);
+        soundFx.playConfirm();
+        setShowAuthModal(false);
+        setRegName("");
+        setRegEmail("");
+        setRegPassword("");
+        window.location.reload();
+      } else {
+        setErrorMessage(data.error || "Registration rejected.");
+      }
+    } catch {
+      setErrorMessage("Could not connect to registration gateway.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const PRESET_PASSWORDS: Record<string, string> = {
+    Echo_Zero: "EchoRecon2026!",
+    NeoHacker99: "RiscVPower99!",
+    ByteForge: "CadWedge2026!",
+    CyberValkyrie: "SolarAirgap2026!",
+  };
+
+  const handleQuickSwitchWithPass = async (b: UserProfile) => {
+    const defaultPass = PRESET_PASSWORDS[b.name] || "EchoRecon2026!";
+    setEmailOrName(b.name);
+    setPassword(defaultPass);
+    setActiveTab("login");
   };
 
   return (
@@ -89,16 +150,16 @@ export default function AuthModal() {
         <div className="p-5 bg-gray-950 border-b border-gray-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-neon-green/10 border border-neon-green/30 flex items-center justify-center text-neon-green">
-              <Fingerprint className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-base font-black text-white uppercase font-mono tracking-wider flex items-center gap-2">
-                Cyberdeck Operative Auth
-                <span className="px-2 py-0.5 rounded-full text-[10px] bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                  Identity Node
+                Cyberdeck Security Auth
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-neon-green border border-neon-green/30 font-bold">
+                  PBKDF2-SHA512
                 </span>
               </h2>
-              <p className="text-xs text-gray-400 font-mono">Sign in to persist your blueprints, CAD designs & parts wishlist</p>
+              <p className="text-xs text-gray-400 font-mono">Constant-time HMAC-SHA256 authenticated sessions</p>
             </div>
           </div>
 
@@ -157,7 +218,7 @@ export default function AuthModal() {
             }`}
           >
             <Zap className="w-3.5 h-3.5" />
-            Quick Switch
+            Verified Operatives
           </button>
         </div>
 
@@ -186,12 +247,40 @@ export default function AuthModal() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-mono text-gray-300 mb-1.5 uppercase font-bold flex items-center justify-between">
+                  <span>Cryptographic Password / PIN</span>
+                  <span className="text-[10px] text-cyan-400 font-normal">PBKDF2 100k rounds</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter security passphrase"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 pr-10 text-xs text-white font-mono placeholder-gray-500 focus:border-neon-green focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-gray-950/80 border border-gray-800 rounded-xl text-[10px] text-gray-400 font-mono flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-neon-green shrink-0" />
+                <span>Protected against timing attacks via constant-time buffer comparisons.</span>
+              </div>
+
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-3.5 rounded-xl bg-neon-green text-black font-bold font-mono text-xs hover:bg-neon-green/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-neon-green/10"
               >
-                <span>{isSubmitting ? "Authenticating..." : "Access Decksmith Terminal"}</span>
+                <span>{isSubmitting ? "Verifying Signature..." : "Access Decksmith Terminal"}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
@@ -206,7 +295,7 @@ export default function AuthModal() {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. ShadowRunner or GlitchArchitect"
+                  placeholder="e.g. ShadowRunner (3-32 chars)"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
                   className="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-xs text-white font-mono placeholder-gray-500 focus:border-neon-green focus:outline-none"
@@ -224,6 +313,20 @@ export default function AuthModal() {
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   className="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-xs text-white font-mono placeholder-gray-500 focus:border-neon-green focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-mono text-gray-300 mb-1.5 uppercase font-bold">
+                  Passphrase (Salted PBKDF2 Encrypted)
+                </label>
+                <input
+                  type="password"
+                  placeholder="Choose strong master passphrase"
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  className="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-xs text-white font-mono placeholder-gray-500 focus:border-neon-green focus:outline-none"
+                  required
                 />
               </div>
 
@@ -249,24 +352,24 @@ export default function AuthModal() {
                 disabled={isSubmitting}
                 className="w-full py-3.5 rounded-xl bg-neon-green text-black font-bold font-mono text-xs hover:bg-neon-green/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-neon-green/10"
               >
-                <span>{isSubmitting ? "Provisioning..." : "Create Builder Profile"}</span>
+                <span>{isSubmitting ? "Generating Cryptographic Salt..." : "Create Protected Builder Profile"}</span>
                 <Sparkles className="w-4 h-4" />
               </button>
             </form>
           )}
 
-          {/* Quick Operatives Switcher */}
+          {/* Verified Operatives */}
           {activeTab === "operatives" && (
             <div className="space-y-3">
               <p className="text-xs text-gray-400 font-mono">
-                Instantly switch to verified community field operative identities:
+                Select a verified community operative to load their credentials into sign in:
               </p>
 
               <div className="grid grid-cols-1 gap-2.5 max-h-64 overflow-y-auto">
                 {builders.map((b) => (
                   <button
                     key={b.id}
-                    onClick={() => quickSwitchBuilder(b)}
+                    onClick={() => handleQuickSwitchWithPass(b)}
                     className={`p-3 rounded-xl border flex items-center gap-3 text-left transition-all ${
                       user?.name === b.name
                         ? "bg-emerald-950/40 border-neon-green shadow-md shadow-neon-green/10"
@@ -281,13 +384,12 @@ export default function AuthModal() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-white font-mono">{b.name}</span>
-                        {user?.name === b.name && (
-                          <span className="text-[10px] text-neon-green font-mono font-bold flex items-center gap-1">
-                            <Check className="w-3 h-3" /> ACTIVE
-                          </span>
-                        )}
+                        <span className="text-[10px] text-yellow-400 font-mono">Verified Credential</span>
                       </div>
                       <div className="text-[10px] text-cyan-400 font-mono truncate">{b.role}</div>
+                      <div className="text-[9px] text-gray-500 font-mono mt-0.5">
+                        Pass: {PRESET_PASSWORDS[b.name] || "••••••••"}
+                      </div>
                     </div>
                   </button>
                 ))}

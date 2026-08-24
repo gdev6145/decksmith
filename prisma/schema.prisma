@@ -8,24 +8,27 @@ datasource db {
 }
 
 model User {
-  id         String       @id @default(cuid())
-  email      String       @unique
-  name       String?
-  avatar     String?
-  builds     Build[]
-  chats      ChatSession[]
-  reviews    Review[]
-  comments   Comment[]
-  questions  Question[]
-  answers    Answer[]
-  activities Activity[]
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  avatar       String?
+  passwordHash String?
+  salt         String?
+  role         String?       @default("operative")
+  builds       Build[]
+  chats        ChatSession[]
+  reviews      Review[]
+  comments     Comment[]
+  questions    Question[]
+  answers      Answer[]
+  activities   Activity[]
   notifications Notification[]
-  alerts     Alert[]
-  benchmarks Benchmark[]
-  wishlists  Wishlist[]
-  challenges Challenge[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  alerts       Alert[]
+  benchmarks   Benchmark[]
+  wishlists    Wishlist[]
+  challenges   Challenge[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
 
 model Wishlist {
