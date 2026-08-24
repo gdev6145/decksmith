@@ -16,23 +16,9 @@ dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const allowedOrigins = new Set([
-  `http://localhost:${PORT}`,
-  `http://127.0.0.1:${PORT}`,
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-]);
-
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.has(origin)) {
-      callback(null, true);
-      return;
-    }
-    callback(new Error("Origin not allowed"));
-  },
+  origin: true,
+  credentials: true,
 }));
 app.use(express.json({ limit: "256kb" }));
 
@@ -74,6 +60,6 @@ if (fs.existsSync(webDist)) {
   console.log(`🌐 Serving web app from ${webDist}`);
 }
 
-app.listen(Number(PORT), "127.0.0.1", () => {
-  console.log(`🚀 Decksmith API running on http://localhost:${PORT}`);
+app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`🚀 Decksmith API running on http://0.0.0.0:${PORT}`);
 });
