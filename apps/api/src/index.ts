@@ -8,6 +8,7 @@ import chatRoutes from "./routes/chat.js";
 import partsRoutes from "./routes/parts.js";
 import sessionsRoutes from "./routes/sessions.js";
 import scrapeRoutes from "./routes/scrape.js";
+import authRoutes from "./routes/auth.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/api", authRoutes);
 app.use("/api", chatRoutes);
 app.use("/api", partsRoutes);
 app.use("/api", sessionsRoutes);

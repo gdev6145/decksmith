@@ -1,10 +1,36 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { MessageSquare, Wrench, Cpu, Home, Settings, Heart, Sun, Moon, Bell, Calculator, Sparkles, Crosshair, HardDrive, Activity, Search, Volume2, VolumeX, Menu, X } from "lucide-react";
+import {
+  MessageSquare,
+  Wrench,
+  Cpu,
+  Home,
+  Settings,
+  Heart,
+  Sun,
+  Moon,
+  Bell,
+  Calculator,
+  Sparkles,
+  Crosshair,
+  HardDrive,
+  Activity,
+  Search,
+  Volume2,
+  VolumeX,
+  Menu,
+  X,
+  User,
+  LogIn,
+  LogOut,
+  Shield,
+} from "lucide-react";
 import { useTheme } from "../ThemeContext";
+import { useAuth } from "../AuthContext";
 import CommandPalette from "./CommandPalette";
 import MobileBottomNav from "./MobileBottomNav";
 import InteractiveWizard from "./InteractiveWizard";
+import AuthModal from "./AuthModal";
 import { soundFx } from "../lib/soundFx";
 
 const navItems = [
@@ -22,10 +48,12 @@ const navItems = [
 export default function Layout() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  const { user, isAuthenticated, logout, setShowAuthModal } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [isSoundOn, setIsSoundOn] = useState(soundFx.isEnabled());
   const [notifications, setNotifications] = useState<Array<{ id: string; type: string; title: string; message: string; read: boolean; url: string | null; createdAt: string }>>([]);
@@ -236,9 +264,84 @@ export default function Layout() {
               >
                 <Heart className="w-4 h-4" />
               </Link>
+              {/* User Authentication & Operative Profile Menu */}
+              {isAuthenticated && user ? (
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      soundFx.playClick();
+                      setShowUserMenu((prev) => !prev);
+                    }}
+                    className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-gray-800/90 border border-gray-700 hover:border-neon-green transition-all"
+                  >
+                    <img
+                      src={user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.name}`}
+                      alt={user.name}
+                      className="w-5 h-5 rounded-lg bg-gray-900 border border-gray-700"
+                    />
+                    <span className="text-xs font-bold font-mono text-neon-green hidden lg:inline">{user.name}</span>
+                  </button>
+
+                  {showUserMenu && (
+                    <div
+                      className={`absolute right-0 top-full mt-2 w-56 rounded-2xl border shadow-2xl z-50 p-2 space-y-1 ${
+                        theme === "light" ? "bg-white border-gray-200" : "bg-gray-900 border-gray-800"
+                      }`}
+                    >
+                      <div className="p-2 border-b border-gray-800">
+                        <div className="text-xs font-bold text-white font-mono truncate">{user.name}</div>
+                        <div className="text-[10px] text-cyan-400 font-mono truncate">{user.email}</div>
+                      </div>
+
+                      <Link
+                        to={`/profile/${user.id}`}
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-2 p-2 rounded-xl text-xs font-mono text-gray-300 hover:bg-gray-800 hover:text-white"
+                      >
+                        <User className="w-3.5 h-3.5 text-cyan-400" />
+                        My Profile & Builds
+                      </Link>
+
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          setShowAuthModal(true);
+                        }}
+                        className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-mono text-gray-300 hover:bg-gray-800 hover:text-white text-left"
+                      >
+                        <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                        Switch Callsign
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          logout();
+                        }}
+                        className="w-full flex items-center gap-2 p-2 rounded-xl text-xs font-mono text-red-400 hover:bg-red-950/40 text-left"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    soundFx.playConfirm();
+                    setShowAuthModal(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neon-green text-black font-bold font-mono text-xs hover:bg-neon-green/90 shadow-md shadow-neon-green/20 transition-all"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </button>
+              )}
+
               <Link
                 to="/settings"
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ml-2 ${
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ml-1 ${
                   location.pathname === "/settings"
                     ? theme === "light" ? "bg-gray-200 text-neon-green" : "bg-gray-800 text-neon-green"
                     : theme === "light" ? "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
@@ -315,6 +418,9 @@ export default function Layout() {
 
       {/* Interactive Onboarding Mission Guide Wizard */}
       <InteractiveWizard isOpen={showWizard} onClose={() => setShowWizard(false)} />
+
+      {/* Cyberdeck Operative Authentication Modal */}
+      <AuthModal />
     </div>
   );
 }
