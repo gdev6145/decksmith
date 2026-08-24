@@ -25,6 +25,7 @@ import PinoutStudio from "./pages/PinoutStudio";
 import QrScannerStudio from "./pages/QrScannerStudio";
 import StlViewerStudio from "./pages/StlViewerStudio";
 import PowerDeliveryStudio from "./pages/PowerDeliveryStudio";
+import WiringHarnessStudio from "./pages/WiringHarnessStudio";
 
 function App() {
   return (
@@ -74,6 +75,10 @@ function App() {
           <Route path="power-studio" element={<PowerDeliveryStudio />} />
           <Route path="bms" element={<PowerDeliveryStudio />} />
           <Route path="pd" element={<PowerDeliveryStudio />} />
+          <Route path="harness" element={<WiringHarnessStudio />} />
+          <Route path="wiring" element={<WiringHarnessStudio />} />
+          <Route path="loom" element={<WiringHarnessStudio />} />
+          <Route path="cable" element={<WiringHarnessStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />

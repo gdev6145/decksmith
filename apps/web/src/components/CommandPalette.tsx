@@ -168,6 +168,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "Power",
     },
     {
+      id: "tool-harness",
+      category: "Tools",
+      title: "Wiring Harness & Cable Assembly Loom Studio",
+      subtitle: "Pin-to-pin interconnect matrix, wire color coding, and WireViz YAML export",
+      icon: Layers,
+      action: () => { navigate("/harness"); onClose(); },
+      badge: "Loom",
+    },
+    {
       id: "tool-chat",
       category: "Tools",
       title: "AI Hardware Architect Chat",
