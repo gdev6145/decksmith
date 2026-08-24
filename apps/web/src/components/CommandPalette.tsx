@@ -177,6 +177,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "Loom",
     },
     {
+      id: "tool-sdr",
+      category: "Tools",
+      title: "Tactical SDR Spectrum & Mesh Radio Studio",
+      subtitle: "Spectrogram waterfall, resonant antenna tuner, and Meshtastic presets",
+      icon: Radio,
+      action: () => { navigate("/sdr"); onClose(); },
+      badge: "SDR",
+    },
+    {
       id: "tool-chat",
       category: "Tools",
       title: "AI Hardware Architect Chat",

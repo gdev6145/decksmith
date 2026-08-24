@@ -26,6 +26,7 @@ import QrScannerStudio from "./pages/QrScannerStudio";
 import StlViewerStudio from "./pages/StlViewerStudio";
 import PowerDeliveryStudio from "./pages/PowerDeliveryStudio";
 import WiringHarnessStudio from "./pages/WiringHarnessStudio";
+import SdrRadioStudio from "./pages/SdrRadioStudio";
 
 function App() {
   return (
@@ -79,6 +80,10 @@ function App() {
           <Route path="wiring" element={<WiringHarnessStudio />} />
           <Route path="loom" element={<WiringHarnessStudio />} />
           <Route path="cable" element={<WiringHarnessStudio />} />
+          <Route path="sdr" element={<SdrRadioStudio />} />
+          <Route path="spectrum" element={<SdrRadioStudio />} />
+          <Route path="waterfall" element={<SdrRadioStudio />} />
+          <Route path="radio" element={<SdrRadioStudio />} />
           <Route path="parts" element={<Parts />} />
           <Route path="parts/:slug" element={<PartDetail />} />
           <Route path="settings" element={<Settings />} />
