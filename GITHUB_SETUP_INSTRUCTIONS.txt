@@ -1,0 +1,80 @@
+================================================================================
+                    DECKSMITH - GITHUB REPOSITORY & SETUP GUIDE
+================================================================================
+
+PROJECT LOCATION ON YOUR COMPUTER:
+  /home/ghost/Documents/Default Project/decksmith
+
+PROJECT STATUS:
+  - Git repository initialized on branch 'main'
+  - 142 source files committed
+  - Ready to push to GitHub
+
+--------------------------------------------------------------------------------
+STEP 1: CREATE A NEW REPOSITORY ON GITHUB
+--------------------------------------------------------------------------------
+1. Open your browser and go to:
+   https://github.com/new
+
+2. Repository Name:
+   decksmith
+
+3. Description (optional):
+   The Cyberdeck Architecture, CAD & Telemetry Suite
+
+4. Set to:
+   [x] Public   (or Private, your choice)
+
+5. IMPORTANT:
+   Do NOT check "Add a README file" or "Add .gitignore" (we already created them).
+
+6. Click "Create repository".
+
+--------------------------------------------------------------------------------
+STEP 2: PUSH CODE FROM YOUR COMPUTER TO GITHUB
+--------------------------------------------------------------------------------
+Open a terminal and run the following commands:
+
+cd "/home/ghost/Documents/Default Project/decksmith"
+
+git remote add origin https://github.com/YOUR_GITHUB_USERNAME/decksmith.git
+git push -u origin main
+
+*(Replace YOUR_GITHUB_USERNAME with your actual GitHub username)*
+
+--------------------------------------------------------------------------------
+IF USING SSH KEYS INSTEAD OF HTTPS:
+--------------------------------------------------------------------------------
+cd "/home/ghost/Documents/Default Project/decksmith"
+
+git remote add origin git@github.com:YOUR_GITHUB_USERNAME/decksmith.git
+git push -u origin main
+
+--------------------------------------------------------------------------------
+HOW TO RUN THE APPLICATION LOCALLY
+--------------------------------------------------------------------------------
+1. Start the Development Server (Web + API):
+   cd "/home/ghost/Documents/Default Project/decksmith"
+   pnpm dev
+
+2. Access in your browser:
+   http://localhost:3001
+
+3. Launch the Desktop Electron App:
+   bash "/home/ghost/Documents/Default Project/decksmith/scripts/launch-desktop.sh"
+
+--------------------------------------------------------------------------------
+FEATURES & STUDIOS INCLUDED IN THIS RELEASE
+--------------------------------------------------------------------------------
+- Blueprint Studio (/builder)       : 10-slot modular cyberdeck creator & dossier export
+- 3D CAD & CNC Studio (/cad)        : WebGL 3D orbit viewer, exploded view & STL/DXF
+- OS Flasher Companion (/flasher)   : Custom display modelines & cloud-init Wi-Fi setup
+- Field Diagnostics (/companion)    : Real-time I2C bus scanner & BIST hardware tests
+- Keyboard Matrix (/keyboard)       : Ortholinear/split matrix designer & QMK/KMK firmware
+- Solar & Off-Grid (/solar)         : MPPT solar array sizing & LiFePO4 battery autonomy
+- Wireless Range & RF (/rf)         : Free Space Path Loss (FSPL) & Fresnel zone clearance
+- Thermal Dissipation (/cooling)    : Heatsink Theta resistance & fan acoustic noise (dBA)
+- RAID / NAS Storage (/calculator)  : Multi-drive ZFS/RAID storage capacity & fault tolerance
+- Global Command Palette (Ctrl+K)   : Instant fuzzy tool search with mechanical audio FX
+
+================================================================================

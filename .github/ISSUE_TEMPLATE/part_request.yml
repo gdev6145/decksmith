@@ -1,0 +1,41 @@
+name: "🔌 Hardware Part / Module Request"
+description: Request a new SBC, display, BMS, or transceiver to be added to the catalog
+title: "[PART REQUEST]: "
+labels: ["parts-catalog", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest a new hardware part or cyberdeck module for the Decksmith component database.
+  - type: input
+    id: part_name
+    attributes:
+      label: Part / Component Name
+      placeholder: "e.g. Radxa Zero 3W, Pimoroni Display HAT Mini, Heltec V3 ESP32 LoRa"
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Component Category
+      options:
+        - "SBC (Single Board Computer)"
+        - "DISPLAY"
+        - "KEYBOARD / INPUT"
+        - "BATTERY / BMS"
+        - "STORAGE"
+        - "NETWORK / SDR / LORA"
+        - "COOLING"
+        - "SENSORS / EXPANSION"
+    validations:
+      required: true
+  - type: input
+    id: datasheet_url
+    attributes:
+      label: Datasheet / Product URL
+      placeholder: "https://..."
+  - type: textarea
+    id: specs
+    attributes:
+      label: Key Specifications & Pinout
+      placeholder: "Power draw (Watts), Dimensions (mm), GPIO pins used (I2C/SPI/UART), Interface type"
