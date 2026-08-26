@@ -31,6 +31,7 @@ import {
   ExternalLink,
   ChevronRight,
   Sliders,
+  Usb,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -101,6 +102,17 @@ const allStudios: StudioItem[] = [
     color: "text-neon-green",
     borderColor: "border-neon-green/40 hover:border-neon-green",
     glow: "hover:shadow-neon-green/20",
+  },
+  {
+    icon: Usb,
+    badge: "WebSerial Link",
+    title: "Serial Terminal & MCU Flasher",
+    description: "Direct in-browser USB serial connection, live ASCII/Hex debug monitor, and firmware flasher for RP2040, ESP32, and Arduino.",
+    link: "/serial",
+    category: "firmware",
+    color: "text-cyan-400",
+    borderColor: "border-cyan-500/40 hover:border-cyan-400",
+    glow: "hover:shadow-cyan-500/20",
   },
   {
     icon: Music,

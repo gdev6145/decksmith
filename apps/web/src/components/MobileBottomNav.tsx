@@ -28,6 +28,7 @@ import {
   Music,
   User,
   LogIn,
+  Usb,
 } from "lucide-react";
 import { useAuth } from "../AuthContext";
 import { soundFx } from "../lib/soundFx";
@@ -80,6 +81,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
     { path: "/survival", label: "Airgap Survival", badge: "KiCad", icon: ShieldAlert, color: "text-rose-400" },
     { path: "/logic", label: "Logic Analyzer", badge: "Bus Sniffer", icon: Activity, color: "text-neon-green" },
     { path: "/synth", label: "Audio & Chiptune", badge: "Tracker", icon: Music, color: "text-rose-400" },
+    { path: "/serial", label: "WebSerial Flasher", badge: "USB-UART", icon: Usb, color: "text-cyan-400" },
     { path: "/calculator", label: "RAID & NAS Calc", badge: "ZFS", icon: Calculator, color: "text-blue-400" },
     { path: "/parts", label: "Parts Catalog", badge: "112+ Parts", icon: Cpu, color: "text-teal-400" },
     { path: "/chat", label: "AI Hardware Chat", badge: "LLM", icon: MessageSquare, color: "text-pink-400" },

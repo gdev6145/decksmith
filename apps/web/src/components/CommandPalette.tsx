@@ -26,6 +26,7 @@ import {
   Router as RouterIcon,
   ShieldAlert,
   Music,
+  Usb,
 } from "lucide-react";
 
 import { soundFx } from "../lib/soundFx";
@@ -232,6 +233,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       icon: Music,
       action: () => { navigate("/synth"); onClose(); },
       badge: "Audio",
+    },
+    {
+      id: "tool-serial",
+      category: "Tools",
+      title: "WebSerial Terminal & MCU Flasher Studio",
+      subtitle: "Direct USB-UART serial link, ASCII/Hex debug monitor, and MicroPython/CircuitPython flasher",
+      icon: Usb,
+      action: () => { navigate("/serial"); onClose(); },
+      badge: "WebSerial",
     },
     {
       id: "tool-guide",

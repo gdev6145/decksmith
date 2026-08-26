@@ -33,6 +33,7 @@ import RouterStudio from "./pages/RouterStudio";
 import AirgapSurvivalStudio from "./pages/AirgapSurvivalStudio";
 import LogicAnalyzerStudio from "./pages/LogicAnalyzerStudio";
 import AudioSynthStudio from "./pages/AudioSynthStudio";
+import WebSerialStudio from "./pages/WebSerialStudio";
 
 function App() {
   return (
@@ -111,6 +112,11 @@ function App() {
             <Route path="audio" element={<AudioSynthStudio />} />
             <Route path="chiptune" element={<AudioSynthStudio />} />
             <Route path="tracker" element={<AudioSynthStudio />} />
+            <Route path="serial" element={<WebSerialStudio />} />
+            <Route path="webserial" element={<WebSerialStudio />} />
+            <Route path="flasher-usb" element={<WebSerialStudio />} />
+            <Route path="uart" element={<WebSerialStudio />} />
+            <Route path="terminal" element={<WebSerialStudio />} />
             <Route path="parts" element={<Parts />} />
             <Route path="parts/:slug" element={<PartDetail />} />
             <Route path="settings" element={<Settings />} />
