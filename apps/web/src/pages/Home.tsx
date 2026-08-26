@@ -71,6 +71,17 @@ const allStudios: StudioItem[] = [
     glow: "hover:shadow-cyan-500/20",
   },
   {
+    icon: Layers,
+    badge: "3D Stacking Guide",
+    title: "3D Exploded Assembly Simulator",
+    description: "Interactive 3D layer explosion, step-by-step mechanical stacking guide, fastener torque limits, and printable field manual.",
+    link: "/assembly",
+    category: "fabrication",
+    color: "text-neon-green",
+    borderColor: "border-neon-green/40 hover:border-neon-green",
+    glow: "hover:shadow-neon-green/20",
+  },
+  {
     icon: HardDrive,
     badge: "Zero-Touch Boot",
     title: "OS Flasher & Modelines",

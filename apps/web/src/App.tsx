@@ -34,6 +34,7 @@ import AirgapSurvivalStudio from "./pages/AirgapSurvivalStudio";
 import LogicAnalyzerStudio from "./pages/LogicAnalyzerStudio";
 import AudioSynthStudio from "./pages/AudioSynthStudio";
 import WebSerialStudio from "./pages/WebSerialStudio";
+import AssemblyGuideStudio from "./pages/AssemblyGuideStudio";
 
 function App() {
   return (
@@ -117,6 +118,10 @@ function App() {
             <Route path="flasher-usb" element={<WebSerialStudio />} />
             <Route path="uart" element={<WebSerialStudio />} />
             <Route path="terminal" element={<WebSerialStudio />} />
+            <Route path="assembly" element={<AssemblyGuideStudio />} />
+            <Route path="exploded-view" element={<AssemblyGuideStudio />} />
+            <Route path="stacking-guide" element={<AssemblyGuideStudio />} />
+            <Route path="build-guide" element={<AssemblyGuideStudio />} />
             <Route path="parts" element={<Parts />} />
             <Route path="parts/:slug" element={<PartDetail />} />
             <Route path="settings" element={<Settings />} />

@@ -73,6 +73,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "3D CAD",
     },
     {
+      id: "tool-assembly",
+      category: "Tools",
+      title: "3D Exploded Assembly & Stacking Guide Studio",
+      subtitle: "Layer-by-layer 3D explosion slider, screw torque limits, and printable build manual",
+      icon: Layers,
+      action: () => { navigate("/assembly"); onClose(); },
+      badge: "Assembly",
+    },
+    {
       id: "tool-flasher",
       category: "Tools",
       title: "OS Flasher Companion",
