@@ -25,17 +25,17 @@ interface UserBuild {
 }
 
 export default function Profile() {
-  const { id } = useParams<{ id: string }>();
+  const { id, userId } = useParams<{ id?: string; userId?: string }>();
+  const targetId = userId || id || "operative-1";
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [builds, setBuilds] = useState<UserBuild[]>([]);
   const [stats, setStats] = useState({ totalBuilds: 0, totalReviews: 0, totalComments: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
     const fetchProfile = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/users/${id}`);
+        const res = await fetch(`${API_URL}/api/users/${targetId}`);
         if (res.ok) {
           const data = await res.json();
           setProfile(data.user);
@@ -44,18 +44,18 @@ export default function Profile() {
         } else {
           // Fallback demo operative profile
           setProfile({
-            id,
-            name: "Operative " + id.slice(0, 6),
-            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${id}`,
+            id: targetId,
+            name: "Operative " + targetId.slice(0, 6),
+            avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${targetId}`,
             role: "Field Hardware Operative",
             createdAt: new Date().toISOString(),
           });
         }
       } catch {
         setProfile({
-          id,
-          name: "Operative " + id.slice(0, 6),
-          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${id}`,
+          id: targetId,
+          name: "Operative " + targetId.slice(0, 6),
+          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${targetId}`,
           role: "Field Hardware Operative",
           createdAt: new Date().toISOString(),
         });
