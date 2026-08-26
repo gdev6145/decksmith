@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "@decksmith/database";
+import { verifyToken } from "../lib/authCrypto.js";
 
 const router: Router = Router();
 
@@ -131,16 +132,95 @@ router.get("/users/:id", async (req, res) => {
   }
 });
 
-router.get("/notifications", async (_req, res) => {
-  try {
-    const user = await prisma.user.findUnique({ where: { email: "guest@decksmith.local" } });
-    if (!user) { res.json([]); return; }
+const DEFAULT_ADDITIONS = [
+  {
+    type: "new_studio",
+    title: "🧩 New Studio: 3D Exploded Assembly Guide",
+    message: "Interactive 3D layer explosion slider, step-by-step mechanical stacking, screw torque limits, and printable field manual.",
+    url: "/assembly",
+  },
+  {
+    type: "new_studio",
+    title: "🔌 New Studio: WebSerial Terminal & MCU Flasher",
+    message: "Connect USB-UART microcontrollers directly in browser, view live ASCII/Hex debug streams, and flash MicroPython/CircuitPython.",
+    url: "/serial",
+  },
+  {
+    type: "new_studio",
+    title: "🎵 New Studio: Audio DSP & Chiptune Synth",
+    message: "16-step tracker synthesizer, resonant lowpass filter, Cyberpunk musical scales, I2S DAC profiles, and ALSA asound.conf export.",
+    url: "/synth",
+  },
+  {
+    type: "new_studio",
+    title: "⚡ New Studio: Logic Analyzer & Bus Sniffer",
+    message: "4-channel digital waveform timing analyzer with protocol decoders for I2C (400kHz), SPI (10MHz), UART (115200), and 1-Wire.",
+    url: "/logic",
+  },
+  {
+    type: "new_part",
+    title: "📦 12+ New Verified Cyberdeck Parts Added",
+    message: "StarFive VisionFive 2 RISC-V SBC, Khadas VIM4, 11.9\" Bar Touch LCD, BlackBerry Q10 I2C Keyboard, HackRF One SDR, and SCD41 sensor.",
+    url: "/parts",
+  },
+  {
+    type: "security_update",
+    title: "🛡️ Zero-Trust Cryptographic Auth Live",
+    message: "Salted PBKDF2-SHA512 password hashing (100,000 rounds), constant-time timing safe checks, and signed HMAC-SHA256 bearer tokens.",
+    url: "/settings",
+  },
+  {
+    type: "new_feature",
+    title: "✨ Interactive Mission Guide v2.0",
+    message: "Cyberdeck diagnostic archetype quiz, battery runtime calculator, antenna whip resonator, and gamified builder achievement badges.",
+    url: "/builder",
+  },
+];
 
-    const notifications = await prisma.notification.findMany({
+// Helper to get authenticated user from Bearer Token or fallback to Guest
+async function getAuthUserFromReq(req: any) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.split(" ")[1];
+    const payload = verifyToken(token);
+    if (payload?.userId) {
+      const u = await prisma.user.findUnique({ where: { id: payload.userId } });
+      if (u) return u;
+    }
+  }
+  return getGuestUser();
+}
+
+router.get("/notifications", async (req, res) => {
+  try {
+    const user = await getAuthUserFromReq(req);
+
+    // If user has no notifications, auto-seed default additions
+    let notifications = await prisma.notification.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
       take: 50,
     });
+
+    if (notifications.length === 0) {
+      for (const item of DEFAULT_ADDITIONS) {
+        await prisma.notification.create({
+          data: {
+            userId: user.id,
+            type: item.type,
+            title: item.title,
+            message: item.message,
+            url: item.url,
+            read: false,
+          },
+        });
+      }
+      notifications = await prisma.notification.findMany({
+        where: { userId: user.id },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+    }
 
     const unreadCount = await prisma.notification.count({
       where: { userId: user.id, read: false },
@@ -164,10 +244,9 @@ router.get("/notifications", async (_req, res) => {
   }
 });
 
-router.post("/notifications/mark-read", async (_req, res) => {
+router.post("/notifications/mark-read", async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({ where: { email: "guest@decksmith.local" } });
-    if (!user) { res.json({ ok: true }); return; }
+    const user = await getAuthUserFromReq(req);
 
     await prisma.notification.updateMany({
       where: { userId: user.id, read: false },
@@ -179,6 +258,16 @@ router.post("/notifications/mark-read", async (_req, res) => {
     console.error("Mark read error:", error);
     res.status(500).json({ error: "Failed to mark notifications as read" });
   }
+});
+
+// GET /api/updates/new - Structured Changelog of What's Been Newly Added
+router.get("/updates/new", (_req, res) => {
+  res.json({
+    version: "2.4.0",
+    releaseName: "Decksmith Quantum Operative Edition",
+    updatedAt: new Date().toISOString(),
+    additions: DEFAULT_ADDITIONS,
+  });
 });
 
 router.get("/wishlist", async (_req, res) => {

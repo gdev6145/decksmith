@@ -25,13 +25,21 @@ import {
   LogOut,
   Shield,
   Zap,
+  Check,
+  ArrowRight,
+  Usb,
+  ShieldCheck,
+  Layers,
+  Music,
 } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import { useAuth } from "../AuthContext";
+import { API_URL } from "../lib/config";
 import CommandPalette from "./CommandPalette";
 import MobileBottomNav from "./MobileBottomNav";
 import InteractiveWizard from "./InteractiveWizard";
 import AuthModal from "./AuthModal";
+import WhatsNewModal from "./WhatsNewModal";
 import { soundFx } from "../lib/soundFx";
 
 const navItems = [
@@ -49,11 +57,12 @@ const navItems = [
 export default function Layout() {
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const { user, isAuthenticated, logout, setShowAuthModal } = useAuth();
+  const { user, token, isAuthenticated, logout, setShowAuthModal } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [isSoundOn, setIsSoundOn] = useState(soundFx.isEnabled());
@@ -79,31 +88,52 @@ export default function Layout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/notifications`);
-        if (res.ok) {
-          const data = await res.json();
-          setNotifications(data.notifications || []);
-          setUnreadCount(data.unreadCount || 0);
-        }
-      } catch {
-        // ignore
+  const fetchNotifications = async () => {
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/api/notifications`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
       }
-    };
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
+    const interval = setInterval(fetchNotifications, 25000);
     return () => clearInterval(interval);
-  }, []);
+  }, [token]);
 
   const markAllRead = async () => {
+    soundFx.playConfirm();
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || ""}/api/notifications/mark-read`, { method: "POST" });
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      await fetch(`${API_URL}/api/notifications/mark-read`, { method: "POST", headers });
       setUnreadCount(0);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch {
       // ignore
+    }
+  };
+
+  const getNotificationBadge = (type: string) => {
+    switch (type) {
+      case "new_studio":
+        return { label: "NEW STUDIO", bg: "bg-emerald-950/80 text-neon-green border-neon-green/40", icon: Layers };
+      case "new_part":
+        return { label: "HARDWARE", bg: "bg-cyan-950/80 text-cyan-300 border-cyan-500/40", icon: Cpu };
+      case "security_update":
+        return { label: "SECURITY", bg: "bg-yellow-950/80 text-yellow-300 border-yellow-500/40", icon: ShieldCheck };
+      default:
+        return { label: "UPDATE", bg: "bg-purple-950/80 text-purple-300 border-purple-500/40", icon: Sparkles };
     }
   };
 
@@ -118,7 +148,7 @@ export default function Layout() {
               <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-neon-green to-neon-blue rounded-lg flex items-center justify-center">
                 <Cpu className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900" />
               </div>
-              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-neon-green to-neon-blue bg-clip-text text-transparent">
+              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-neon-green to-neon-blue bg-clip-text text-transparent font-mono">
                 Decksmith
               </span>
             </Link>
@@ -273,55 +303,124 @@ export default function Layout() {
                 {isSoundOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </button>
 
-              {/* Notifications Toggle */}
+              {/* Notifications / What's Newly Added Toggle */}
               <div className="relative">
                 <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className={`flex items-center gap-2 p-2 rounded-lg transition-all ${
-                    theme === "light" ? "text-gray-500 hover:text-gray-900 hover:bg-gray-200/50" : "text-gray-500 hover:text-neon-green hover:bg-gray-800/50"
+                  onClick={() => {
+                    soundFx.playClick();
+                    setShowNotifications(!showNotifications);
+                  }}
+                  className={`relative flex items-center gap-2 p-2 rounded-xl transition-all ${
+                    showNotifications
+                      ? "bg-gray-800 text-neon-green border border-neon-green/40"
+                      : "text-gray-400 hover:text-neon-green hover:bg-gray-800/50"
                   }`}
-                  title="Notifications"
+                  title="What's Newly Added & Operative Notifications"
                 >
                   <Bell className="w-4 h-4" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center font-mono animate-pulse shadow-md shadow-red-500/40">
                       {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
                 </button>
+
+                {/* Notifications & Newly Added Dropdown Panel */}
                 {showNotifications && (
                   <div
-                    className={`absolute right-0 top-full mt-2 w-80 rounded-xl border shadow-xl z-50 ${
-                      theme === "light" ? "bg-white border-gray-200" : "bg-gray-900 border-gray-700"
+                    className={`absolute right-0 top-full mt-2 w-84 sm:w-96 rounded-3xl border shadow-2xl z-50 overflow-hidden font-mono ${
+                      theme === "light" ? "bg-white border-gray-200" : "bg-gray-900 border-gray-800"
                     }`}
                   >
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-                      <h3 className="text-sm font-semibold text-gray-100">Notifications</h3>
-                      {unreadCount > 0 && (
-                        <button onClick={markAllRead} className="text-xs text-neon-green hover:underline">
-                          Mark all read
+                    {/* Header */}
+                    <div className="p-4 bg-gray-950 border-b border-gray-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-neon-green" />
+                        <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                          What's Newly Added
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {unreadCount > 0 && (
+                          <button
+                            onClick={markAllRead}
+                            className="text-[10px] text-neon-green hover:underline font-bold"
+                          >
+                            Mark All Read
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            setShowNotifications(false);
+                            setShowWhatsNew(true);
+                          }}
+                          className="px-2 py-0.5 rounded bg-gray-800 text-[10px] text-cyan-300 font-bold border border-gray-700 hover:border-cyan-400"
+                        >
+                          Changelog
                         </button>
+                      </div>
+                    </div>
+
+                    {/* Notifications List */}
+                    <div className="max-h-96 overflow-y-auto divide-y divide-gray-800/80">
+                      {notifications.length > 0 ? (
+                        notifications.map((n) => {
+                          const badge = getNotificationBadge(n.type);
+                          const BadgeIcon = badge.icon;
+                          return (
+                            <Link
+                              key={n.id}
+                              to={n.url || "#"}
+                              onClick={() => setShowNotifications(false)}
+                              className={`block p-4 hover:bg-gray-800/50 transition-all ${
+                                !n.read ? "bg-gray-950/80 border-l-2 border-l-neon-green" : "bg-gray-900/40"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border flex items-center gap-1 ${badge.bg}`}>
+                                  <BadgeIcon className="w-3 h-3" />
+                                  {badge.label}
+                                </span>
+                                <span className="text-[9px] text-gray-500">
+                                  {new Date(n.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+
+                              <p className="text-xs font-bold text-white hover:text-neon-green transition-colors">
+                                {n.title}
+                              </p>
+                              <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
+                                {n.message}
+                              </p>
+
+                              {n.url && (
+                                <div className="mt-2 text-[10px] text-neon-green font-bold flex items-center gap-1">
+                                  <span>Open Feature</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </div>
+                              )}
+                            </Link>
+                          );
+                        })
+                      ) : (
+                        <div className="py-12 text-center text-gray-500 text-xs">
+                          No recent notifications
+                        </div>
                       )}
                     </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map((n) => (
-                          <Link
-                            key={n.id}
-                            to={n.url || "#"}
-                            onClick={() => setShowNotifications(false)}
-                            className={`block px-4 py-3 border-b border-gray-800 hover:bg-gray-800/50 transition-colors ${
-                              !n.read ? "bg-gray-800/30" : ""
-                            }`}
-                          >
-                            <p className="text-sm text-gray-200">{n.title}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{n.message}</p>
-                            <p className="text-xs text-gray-600 mt-1">{new Date(n.createdAt).toLocaleDateString()}</p>
-                          </Link>
-                        ))
-                      ) : (
-                        <p className="text-sm text-gray-500 text-center py-6">No notifications</p>
-                      )}
+
+                    {/* Footer */}
+                    <div className="p-3 bg-gray-950 border-t border-gray-800 text-center">
+                      <button
+                        onClick={() => {
+                          setShowNotifications(false);
+                          setShowWhatsNew(true);
+                        }}
+                        className="text-xs font-bold text-neon-green hover:underline flex items-center justify-center gap-1 mx-auto"
+                      >
+                        <span>View Full v2.4 Release Notes</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -340,7 +439,7 @@ export default function Layout() {
 
           {/* Slide-Down Mobile Header Menu */}
           {showMobileNav && (
-            <nav className={`md:hidden grid grid-cols-2 gap-1 pb-3 ${theme === "light" ? "border-t border-gray-200" : "border-t border-gray-800"} pt-3`}>
+            <nav className={`md:hidden grid grid-cols-2 gap-1 pb-3 ${theme === "light" ? "border-t border-gray-200" : "border-t border-gray-800"} pt-3 font-mono`}>
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -381,10 +480,18 @@ export default function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className={`border-t ${theme === "light" ? "border-gray-200 bg-gray-100/30" : "border-gray-800 bg-gray-900/30"} py-6 mb-16 md:mb-0`}>
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm">
-          <p>Decksmith - AI-Powered Cyberdeck Builder</p>
-          <p className="mt-1">Build your dream portable computer</p>
+      <footer className={`border-t ${theme === "light" ? "border-gray-200 bg-gray-100/30" : "border-gray-800 bg-gray-900/30"} py-6 mb-16 md:mb-0 font-mono`}>
+        <div className="max-w-7xl mx-auto px-4 text-center text-gray-500 text-sm space-y-1">
+          <p>Decksmith - AI-Powered Cyberdeck Builder & Hardware Engineering Suite</p>
+          <div className="flex items-center justify-center gap-3 text-xs text-gray-600 pt-1">
+            <button onClick={() => setShowWhatsNew(true)} className="text-neon-green hover:underline">
+              What's Newly Added (v2.4)
+            </button>
+            <span>•</span>
+            <button onClick={() => setShowWizard(true)} className="hover:text-gray-400">
+              Interactive Mission Guide
+            </button>
+          </div>
         </div>
       </footer>
 
@@ -412,6 +519,9 @@ export default function Layout() {
 
       {/* Cyberdeck Operative Authentication Modal */}
       <AuthModal />
+
+      {/* What's Newly Added Changelog Modal */}
+      <WhatsNewModal isOpen={showWhatsNew} onClose={() => setShowWhatsNew(false)} />
     </div>
   );
 }
