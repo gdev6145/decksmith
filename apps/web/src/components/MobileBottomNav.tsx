@@ -65,6 +65,7 @@ export default function MobileBottomNav({ onOpenCommandPalette }: MobileBottomNa
     { path: "/builder", label: "Blueprint Studio", badge: "10-Slot", icon: Sparkles, color: "text-neon-green" },
     { path: "/cad", label: "3D CAD & CNC", badge: "WebGL", icon: Crosshair, color: "text-cyan-400" },
     { path: "/assembly", label: "3D Assembly Guide", badge: "Exploded", icon: Layers, color: "text-neon-green" },
+    { path: "/pcb", label: "Gerber PCB Studio", badge: "RS-274X", icon: Cpu, color: "text-cyan-400" },
     { path: "/flasher", label: "OS Flasher", badge: "Modelines", icon: HardDrive, color: "text-purple-400" },
     { path: "/companion", label: "Field HUD", badge: "I2C / IMU", icon: Activity, color: "text-emerald-400" },
     { path: "/keyboard", label: "Keyboard Studio", badge: "QMK / SCAD", icon: Keyboard, color: "text-yellow-400" },

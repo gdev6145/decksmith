@@ -37,6 +37,7 @@ import AudioSynthStudio from "./pages/AudioSynthStudio";
 import WebSerialStudio from "./pages/WebSerialStudio";
 import AssemblyGuideStudio from "./pages/AssemblyGuideStudio";
 import PriceWatchStudio from "./pages/PriceWatchStudio";
+import PcbViewerStudio from "./pages/PcbViewerStudio";
 
 function App() {
   return (
@@ -128,6 +129,10 @@ function App() {
               <Route path="parts/:slug" element={<PartDetail />} />
               <Route path="price-watch" element={<PriceWatchStudio />} />
               <Route path="alerts" element={<PriceWatchStudio />} />
+              <Route path="pcb" element={<PcbViewerStudio />} />
+              <Route path="gerber" element={<PcbViewerStudio />} />
+              <Route path="kicad-viewer" element={<PcbViewerStudio />} />
+              <Route path="pcb-viewer" element={<PcbViewerStudio />} />
               <Route path="settings" element={<Settings />} />
               <Route path="compare" element={<Compare />} />
               <Route path="wishlist" element={<Wishlist />} />

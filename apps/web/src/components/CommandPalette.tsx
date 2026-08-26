@@ -82,6 +82,15 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "Assembly",
     },
     {
+      id: "tool-pcb",
+      category: "Tools",
+      title: "Gerber & KiCad PCB Layer Viewer Studio",
+      subtitle: "Multi-layer copper trace inspection, SMT footprint verification, DRC rules, and Gerber export",
+      icon: Cpu,
+      action: () => { navigate("/pcb"); onClose(); },
+      badge: "PCB",
+    },
+    {
       id: "tool-flasher",
       category: "Tools",
       title: "OS Flasher Companion",

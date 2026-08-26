@@ -94,6 +94,17 @@ const allStudios: StudioItem[] = [
     glow: "hover:shadow-neon-green/20",
   },
   {
+    icon: Cpu,
+    badge: "RS-274X Vector",
+    title: "Gerber & KiCad PCB Studio",
+    description: "In-browser multi-layer PCB copper trace viewer, SMT footprint inspection, DRC manufacturing design rules, and Gerber export.",
+    link: "/pcb",
+    category: "fabrication",
+    color: "text-cyan-400",
+    borderColor: "border-cyan-500/40 hover:border-cyan-400",
+    glow: "hover:shadow-cyan-500/20",
+  },
+  {
     icon: HardDrive,
     badge: "Zero-Touch Boot",
     title: "OS Flasher & Modelines",
