@@ -4,7 +4,7 @@ import {
   ArrowLeft, Loader2, Trash2, Plus, Minus, Edit2, Zap, Battery, DollarSign, Weight,
   AlertTriangle, AlertCircle, Info, ExternalLink, Tag, Heart, Eye, Download,
   Share2, MessageSquare, Copy, Check, Clock, History, Send, BookOpen, Star, GitFork,
-  Calendar, FileText, ShoppingCart, Sliders, Sparkles, Crosshair, HardDrive, Printer, QrCode, ShieldCheck,
+  Calendar, FileText, ShoppingCart, Sliders, Sparkles, Crosshair, HardDrive, Printer, QrCode, ShieldCheck, Layers,
 } from "lucide-react";
 import BuildImage from "../components/BuildImage";
 import CostBreakdown from "../components/CostBreakdown";
@@ -873,6 +873,20 @@ ${build.tags.length ? `<div class="tags">${build.tags.map((t) => `<span class="t
               >
                 <GitFork className="w-3.5 h-3.5" />
                 Fork into Studio
+              </Link>
+              <Link
+                to="/assembly"
+                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-neon-green border border-neon-green/40 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                3D Assembly Guide
+              </Link>
+              <Link
+                to="/pcb"
+                className="px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center gap-1.5 transition-colors"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                PCB Studio
               </Link>
               <Link
                 to={`/cad?chassis=${chassisSlug}`}
