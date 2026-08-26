@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./ThemeContext";
 import { AuthProvider } from "./AuthContext";
+import { NotificationProvider } from "./NotificationContext";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
 import Chat from "./pages/Chat";
@@ -40,99 +41,99 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-            <Route path="chat" element={<Chat />} />
-            <Route path="builds" element={<Builds />} />
-            <Route path="builds/:slug" element={<BuildDetail />} />
-            <Route path="builder" element={<BuildCreator />} />
-            <Route path="create-build" element={<BuildCreator />} />
-            <Route path="studio" element={<BuildCreator />} />
-            <Route path="cad" element={<CadStudio />} />
-            <Route path="cad-studio" element={<CadStudio />} />
-            <Route path="templates" element={<CadStudio />} />
-            <Route path="flasher" element={<OsFlasherStudio />} />
-            <Route path="flash" element={<OsFlasherStudio />} />
-            <Route path="provision" element={<OsFlasherStudio />} />
-            <Route path="os-builder" element={<OsFlasherStudio />} />
-            <Route path="companion" element={<FieldDiagnosticsStudio />} />
-            <Route path="diagnostics" element={<FieldDiagnosticsStudio />} />
-            <Route path="telemetry" element={<FieldDiagnosticsStudio />} />
-            <Route path="keyboard" element={<KeyboardMatrixStudio />} />
-            <Route path="keyboard-studio" element={<KeyboardMatrixStudio />} />
-            <Route path="matrix" element={<KeyboardMatrixStudio />} />
-            <Route path="solar" element={<SolarEnergyStudio />} />
-            <Route path="energy" element={<SolarEnergyStudio />} />
-            <Route path="solar-calc" element={<SolarEnergyStudio />} />
-            <Route path="rf" element={<RfLinkBudgetStudio />} />
-            <Route path="antenna" element={<RfLinkBudgetStudio />} />
-            <Route path="link-budget" element={<RfLinkBudgetStudio />} />
-            <Route path="cooling" element={<CoolingThermalsStudio />} />
-            <Route path="thermals" element={<CoolingThermalsStudio />} />
-            <Route path="thermal-calc" element={<CoolingThermalsStudio />} />
-            <Route path="pinout" element={<PinoutStudio />} />
-            <Route path="gpio" element={<PinoutStudio />} />
-            <Route path="pins" element={<PinoutStudio />} />
-            <Route path="scan" element={<QrScannerStudio />} />
-            <Route path="scanner" element={<QrScannerStudio />} />
-            <Route path="qr" element={<QrScannerStudio />} />
-            <Route path="stl" element={<StlViewerStudio />} />
-            <Route path="stl-viewer" element={<StlViewerStudio />} />
-            <Route path="mesh" element={<StlViewerStudio />} />
-            <Route path="3d-print" element={<StlViewerStudio />} />
-            <Route path="power" element={<PowerDeliveryStudio />} />
-            <Route path="power-studio" element={<PowerDeliveryStudio />} />
-            <Route path="bms" element={<PowerDeliveryStudio />} />
-            <Route path="pd" element={<PowerDeliveryStudio />} />
-            <Route path="harness" element={<WiringHarnessStudio />} />
-            <Route path="wiring" element={<WiringHarnessStudio />} />
-            <Route path="loom" element={<WiringHarnessStudio />} />
-            <Route path="cable" element={<WiringHarnessStudio />} />
-            <Route path="sdr" element={<SdrRadioStudio />} />
-            <Route path="spectrum" element={<SdrRadioStudio />} />
-            <Route path="waterfall" element={<SdrRadioStudio />} />
-            <Route path="radio" element={<SdrRadioStudio />} />
-            <Route path="gps" element={<GpsTrackerStudio />} />
-            <Route path="gnss" element={<GpsTrackerStudio />} />
-            <Route path="satellites" element={<GpsTrackerStudio />} />
-            <Route path="nmea" element={<GpsTrackerStudio />} />
-            <Route path="router" element={<RouterStudio />} />
-            <Route path="networking" element={<RouterStudio />} />
-            <Route path="gateway" element={<RouterStudio />} />
-            <Route path="firewall" element={<RouterStudio />} />
-            <Route path="survival" element={<AirgapSurvivalStudio />} />
-            <Route path="airgap" element={<AirgapSurvivalStudio />} />
-            <Route path="kicad" element={<AirgapSurvivalStudio />} />
-            <Route path="offline" element={<AirgapSurvivalStudio />} />
-            <Route path="logic" element={<LogicAnalyzerStudio />} />
-            <Route path="sniffer" element={<LogicAnalyzerStudio />} />
-            <Route path="analyzer" element={<LogicAnalyzerStudio />} />
-            <Route path="bus" element={<LogicAnalyzerStudio />} />
-            <Route path="synth" element={<AudioSynthStudio />} />
-            <Route path="audio" element={<AudioSynthStudio />} />
-            <Route path="chiptune" element={<AudioSynthStudio />} />
-            <Route path="tracker" element={<AudioSynthStudio />} />
-            <Route path="serial" element={<WebSerialStudio />} />
-            <Route path="webserial" element={<WebSerialStudio />} />
-            <Route path="flasher-usb" element={<WebSerialStudio />} />
-            <Route path="uart" element={<WebSerialStudio />} />
-            <Route path="terminal" element={<WebSerialStudio />} />
-            <Route path="assembly" element={<AssemblyGuideStudio />} />
-            <Route path="exploded-view" element={<AssemblyGuideStudio />} />
-            <Route path="stacking-guide" element={<AssemblyGuideStudio />} />
-            <Route path="build-guide" element={<AssemblyGuideStudio />} />
-            <Route path="parts" element={<Parts />} />
-            <Route path="parts/:slug" element={<PartDetail />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="compare" element={<Compare />} />
-            <Route path="wishlist" element={<Wishlist />} />
-            <Route path="profile/:id" element={<Profile />} />
-            <Route path="leaderboard" element={<Leaderboard />} />
-            <Route path="calculator" element={<RaidCalcPage />} />
-            <Route path="raid-calc" element={<RaidCalcPage />} />
-          </Route>
-        </Routes>
+        <NotificationProvider>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Home />} />
+              <Route path="chat" element={<Chat />} />
+              <Route path="builds" element={<Builds />} />
+              <Route path="builds/:slug" element={<BuildDetail />} />
+              <Route path="builder" element={<BuildCreator />} />
+              <Route path="create-build" element={<BuildCreator />} />
+              <Route path="studio" element={<BuildCreator />} />
+              <Route path="cad" element={<CadStudio />} />
+              <Route path="cad-studio" element={<CadStudio />} />
+              <Route path="templates" element={<CadStudio />} />
+              <Route path="flasher" element={<OsFlasherStudio />} />
+              <Route path="flash" element={<OsFlasherStudio />} />
+              <Route path="provision" element={<OsFlasherStudio />} />
+              <Route path="os-builder" element={<OsFlasherStudio />} />
+              <Route path="companion" element={<FieldDiagnosticsStudio />} />
+              <Route path="diagnostics" element={<FieldDiagnosticsStudio />} />
+              <Route path="telemetry" element={<FieldDiagnosticsStudio />} />
+              <Route path="keyboard" element={<KeyboardMatrixStudio />} />
+              <Route path="keyboard-studio" element={<KeyboardMatrixStudio />} />
+              <Route path="matrix" element={<KeyboardMatrixStudio />} />
+              <Route path="solar" element={<SolarEnergyStudio />} />
+              <Route path="energy" element={<SolarEnergyStudio />} />
+              <Route path="solar-calc" element={<SolarEnergyStudio />} />
+              <Route path="rf" element={<RfLinkBudgetStudio />} />
+              <Route path="antenna" element={<RfLinkBudgetStudio />} />
+              <Route path="link-budget" element={<RfLinkBudgetStudio />} />
+              <Route path="cooling" element={<CoolingThermalsStudio />} />
+              <Route path="thermals" element={<CoolingThermalsStudio />} />
+              <Route path="thermal-calc" element={<CoolingThermalsStudio />} />
+              <Route path="pinout" element={<PinoutStudio />} />
+              <Route path="gpio" element={<PinoutStudio />} />
+              <Route path="pins" element={<PinoutStudio />} />
+              <Route path="scan" element={<QrScannerStudio />} />
+              <Route path="scanner" element={<QrScannerStudio />} />
+              <Route path="qr" element={<QrScannerStudio />} />
+              <Route path="stl" element={<StlViewerStudio />} />
+              <Route path="stl-viewer" element={<StlViewerStudio />} />
+              <Route path="mesh" element={<StlViewerStudio />} />
+              <Route path="3d-print" element={<StlViewerStudio />} />
+              <Route path="power" element={<PowerDeliveryStudio />} />
+              <Route path="power-studio" element={<PowerDeliveryStudio />} />
+              <Route path="bms" element={<PowerDeliveryStudio />} />
+              <Route path="pd" element={<PowerDeliveryStudio />} />
+              <Route path="harness" element={<WiringHarnessStudio />} />
+              <Route path="wiring" element={<WiringHarnessStudio />} />
+              <Route path="loom" element={<WiringHarnessStudio />} />
+              <Route path="sdr" element={<SdrRadioStudio />} />
+              <Route path="radio" element={<SdrRadioStudio />} />
+              <Route path="spectrum" element={<SdrRadioStudio />} />
+              <Route path="waterfall" element={<SdrRadioStudio />} />
+              <Route path="gps" element={<GpsTrackerStudio />} />
+              <Route path="location" element={<GpsTrackerStudio />} />
+              <Route path="satellites" element={<GpsTrackerStudio />} />
+              <Route path="gnss" element={<GpsTrackerStudio />} />
+              <Route path="router" element={<RouterStudio />} />
+              <Route path="gateway" element={<RouterStudio />} />
+              <Route path="firewall" element={<RouterStudio />} />
+              <Route path="openwrt" element={<RouterStudio />} />
+              <Route path="survival" element={<AirgapSurvivalStudio />} />
+              <Route path="airgap" element={<AirgapSurvivalStudio />} />
+              <Route path="kicad" element={<AirgapSurvivalStudio />} />
+              <Route path="pcb" element={<AirgapSurvivalStudio />} />
+              <Route path="logic" element={<LogicAnalyzerStudio />} />
+              <Route path="sniffer" element={<LogicAnalyzerStudio />} />
+              <Route path="bus" element={<LogicAnalyzerStudio />} />
+              <Route path="pulseview" element={<LogicAnalyzerStudio />} />
+              <Route path="synth" element={<AudioSynthStudio />} />
+              <Route path="audio" element={<AudioSynthStudio />} />
+              <Route path="chiptune" element={<AudioSynthStudio />} />
+              <Route path="tracker" element={<AudioSynthStudio />} />
+              <Route path="serial" element={<WebSerialStudio />} />
+              <Route path="webserial" element={<WebSerialStudio />} />
+              <Route path="flasher-usb" element={<WebSerialStudio />} />
+              <Route path="uart" element={<WebSerialStudio />} />
+              <Route path="terminal" element={<WebSerialStudio />} />
+              <Route path="assembly" element={<AssemblyGuideStudio />} />
+              <Route path="exploded-view" element={<AssemblyGuideStudio />} />
+              <Route path="stacking-guide" element={<AssemblyGuideStudio />} />
+              <Route path="build-guide" element={<AssemblyGuideStudio />} />
+              <Route path="parts" element={<Parts />} />
+              <Route path="parts/:slug" element={<PartDetail />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="compare" element={<Compare />} />
+              <Route path="wishlist" element={<Wishlist />} />
+              <Route path="profile/:userId" element={<Profile />} />
+              <Route path="leaderboard" element={<Leaderboard />} />
+              <Route path="calculator" element={<RaidCalcPage />} />
+            </Route>
+          </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

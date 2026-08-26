@@ -31,9 +31,12 @@ import {
   ShieldCheck,
   Layers,
   Music,
+  Tag,
+  Radio,
 } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import { useAuth } from "../AuthContext";
+import { useNotification } from "../NotificationContext";
 import { API_URL } from "../lib/config";
 import CommandPalette from "./CommandPalette";
 import MobileBottomNav from "./MobileBottomNav";
@@ -56,10 +59,12 @@ const navItems = [
 
 export default function Layout() {
   const location = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { user, token, isAuthenticated, logout, setShowAuthModal } = useAuth();
+  const { dispatchToast, requestDesktopPermission, hasDesktopPermission } = useNotification();
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<"all" | "studio" | "hardware" | "security">("all");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
@@ -127,14 +132,32 @@ export default function Layout() {
   const getNotificationBadge = (type: string) => {
     switch (type) {
       case "new_studio":
-        return { label: "NEW STUDIO", bg: "bg-emerald-950/80 text-neon-green border-neon-green/40", icon: Layers };
+        return { label: "NEW STUDIO", bg: "bg-emerald-950/80 text-neon-green border-neon-green/40", icon: Layers, category: "studio" };
       case "new_part":
-        return { label: "HARDWARE", bg: "bg-cyan-950/80 text-cyan-300 border-cyan-500/40", icon: Cpu };
+        return { label: "HARDWARE", bg: "bg-cyan-950/80 text-cyan-300 border-cyan-500/40", icon: Cpu, category: "hardware" };
       case "security_update":
-        return { label: "SECURITY", bg: "bg-yellow-950/80 text-yellow-300 border-yellow-500/40", icon: ShieldCheck };
+        return { label: "SECURITY", bg: "bg-yellow-950/80 text-yellow-300 border-yellow-500/40", icon: ShieldCheck, category: "security" };
       default:
-        return { label: "UPDATE", bg: "bg-purple-950/80 text-purple-300 border-purple-500/40", icon: Sparkles };
+        return { label: "UPDATE", bg: "bg-purple-950/80 text-purple-300 border-purple-500/40", icon: Sparkles, category: "all" };
     }
+  };
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "studio") return n.type === "new_studio";
+    if (activeFilter === "hardware") return n.type === "new_part";
+    if (activeFilter === "security") return n.type === "security_update";
+    return true;
+  });
+
+  const handleTestToast = () => {
+    dispatchToast({
+      type: "price_drop",
+      title: "🔥 Price Drop Alert: Waveshare 11.9\" Bar LCD",
+      message: "Price decreased by 18% ($84.99 -> $69.99) on Adafruit / AliExpress.",
+      url: "/parts",
+      actionLabel: "View in Parts Catalog",
+    });
   };
 
   return (
@@ -179,9 +202,9 @@ export default function Layout() {
               })}
             </nav>
 
-            {/* Action Buttons (Right Header - Always Visible on Mobile & Desktop) */}
+            {/* Action Buttons (Right Header) */}
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* Guide Button (Visible on both Mobile & Desktop) */}
+              {/* Guide Button */}
               <button
                 onClick={() => {
                   soundFx.playConfirm();
@@ -198,7 +221,7 @@ export default function Layout() {
                 <span className="text-[11px] sm:text-xs">Guide</span>
               </button>
 
-              {/* User Authentication / Callsign Profile Button */}
+              {/* User Callsign Button */}
               {isAuthenticated && user ? (
                 <div className="relative">
                   <button
@@ -275,7 +298,7 @@ export default function Layout() {
                 </button>
               )}
 
-              {/* Desktop Command Palette Trigger */}
+              {/* Desktop Command Palette */}
               <button
                 onClick={() => setShowCommandPalette(true)}
                 className={`hidden lg:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all ${
@@ -289,7 +312,7 @@ export default function Layout() {
                 <span className="text-[11px] text-gray-400">Ctrl+K</span>
               </button>
 
-              {/* Sound FX Toggle */}
+              {/* Audio FX Toggle */}
               <button
                 onClick={() => {
                   const state = soundFx.toggleSound();
@@ -303,7 +326,7 @@ export default function Layout() {
                 {isSoundOn ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
               </button>
 
-              {/* Notifications / What's Newly Added Toggle */}
+              {/* Notifications & Tactical Alerts Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => {
@@ -325,10 +348,10 @@ export default function Layout() {
                   )}
                 </button>
 
-                {/* Notifications & Newly Added Dropdown Panel */}
+                {/* Tactical Alert & Notification Dispatch Drawer */}
                 {showNotifications && (
                   <div
-                    className={`absolute right-0 top-full mt-2 w-84 sm:w-96 rounded-3xl border shadow-2xl z-50 overflow-hidden font-mono ${
+                    className={`absolute right-0 top-full mt-2 w-88 sm:w-[420px] rounded-3xl border shadow-2xl z-50 overflow-hidden font-mono ${
                       theme === "light" ? "bg-white border-gray-200" : "bg-gray-900 border-gray-800"
                     }`}
                   >
@@ -337,16 +360,16 @@ export default function Layout() {
                       <div className="flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-neon-green" />
                         <h3 className="text-xs font-bold text-white uppercase tracking-wider">
-                          What's Newly Added
+                          Tactical Alerts & Updates
                         </h3>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {unreadCount > 0 && (
                           <button
                             onClick={markAllRead}
-                            className="text-[10px] text-neon-green hover:underline font-bold"
+                            className="text-[10px] text-neon-green hover:underline font-bold mr-1"
                           >
-                            Mark All Read
+                            Mark Read
                           </button>
                         )}
                         <button
@@ -361,10 +384,51 @@ export default function Layout() {
                       </div>
                     </div>
 
+                    {/* Filter Tabs */}
+                    <div className="flex items-center gap-1 p-2 bg-gray-950/90 border-b border-gray-800/80 overflow-x-auto text-[10px]">
+                      {(
+                        [
+                          { id: "all", label: "All" },
+                          { id: "studio", label: "Studios" },
+                          { id: "hardware", label: "Hardware" },
+                          { id: "security", label: "Security" },
+                        ] as const
+                      ).map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => {
+                            soundFx.playClick();
+                            setActiveFilter(tab.id);
+                          }}
+                          className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                            activeFilter === tab.id
+                              ? "bg-neon-green text-black shadow-sm"
+                              : "text-gray-400 hover:text-white hover:bg-gray-800"
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+
+                      {/* Desktop Push Permission Toggle */}
+                      <button
+                        onClick={requestDesktopPermission}
+                        className={`ml-auto px-2 py-1 rounded-lg text-[9px] font-bold border flex items-center gap-1 shrink-0 ${
+                          hasDesktopPermission
+                            ? "bg-emerald-950 text-emerald-300 border-emerald-500/40"
+                            : "bg-gray-800 text-gray-300 border-gray-700 hover:border-neon-green"
+                        }`}
+                        title="Toggle Native Desktop Push Notifications"
+                      >
+                        <Radio className="w-2.5 h-2.5 text-neon-green" />
+                        <span>{hasDesktopPermission ? "Push ON" : "Enable Push"}</span>
+                      </button>
+                    </div>
+
                     {/* Notifications List */}
                     <div className="max-h-96 overflow-y-auto divide-y divide-gray-800/80">
-                      {notifications.length > 0 ? (
-                        notifications.map((n) => {
+                      {filteredNotifications.length > 0 ? (
+                        filteredNotifications.map((n) => {
                           const badge = getNotificationBadge(n.type);
                           const BadgeIcon = badge.icon;
                           return (
@@ -372,11 +436,11 @@ export default function Layout() {
                               key={n.id}
                               to={n.url || "#"}
                               onClick={() => setShowNotifications(false)}
-                              className={`block p-4 hover:bg-gray-800/50 transition-all ${
-                                !n.read ? "bg-gray-950/80 border-l-2 border-l-neon-green" : "bg-gray-900/40"
+                              className={`block p-3.5 hover:bg-gray-800/50 transition-all ${
+                                !n.read ? "bg-gray-950/90 border-l-2 border-l-neon-green" : "bg-gray-900/40"
                               }`}
                             >
-                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <div className="flex items-center justify-between gap-2 mb-1">
                                 <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border flex items-center gap-1 ${badge.bg}`}>
                                   <BadgeIcon className="w-3 h-3" />
                                   {badge.label}
@@ -395,7 +459,7 @@ export default function Layout() {
 
                               {n.url && (
                                 <div className="mt-2 text-[10px] text-neon-green font-bold flex items-center gap-1">
-                                  <span>Open Feature</span>
+                                  <span>Launch Studio / Component</span>
                                   <ArrowRight className="w-3 h-3" />
                                 </div>
                               )}
@@ -404,22 +468,30 @@ export default function Layout() {
                         })
                       ) : (
                         <div className="py-12 text-center text-gray-500 text-xs">
-                          No recent notifications
+                          No notifications in this filter
                         </div>
                       )}
                     </div>
 
-                    {/* Footer */}
-                    <div className="p-3 bg-gray-950 border-t border-gray-800 text-center">
+                    {/* Footer Quick Action Bar */}
+                    <div className="p-2.5 bg-gray-950 border-t border-gray-800 flex items-center justify-between text-xs">
+                      <button
+                        onClick={handleTestToast}
+                        className="px-2.5 py-1 rounded-lg bg-gray-900 border border-gray-800 text-[10px] text-gray-300 hover:text-white hover:border-gray-700 flex items-center gap-1"
+                      >
+                        <Tag className="w-3 h-3 text-amber-400" />
+                        <span>Simulate Price Drop</span>
+                      </button>
+
                       <button
                         onClick={() => {
                           setShowNotifications(false);
                           setShowWhatsNew(true);
                         }}
-                        className="text-xs font-bold text-neon-green hover:underline flex items-center justify-center gap-1 mx-auto"
+                        className="text-[11px] font-bold text-neon-green hover:underline flex items-center gap-1"
                       >
-                        <span>View Full v2.4 Release Notes</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <span>v2.4 Release Notes</span>
+                        <ArrowRight className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -495,7 +567,7 @@ export default function Layout() {
         </div>
       </footer>
 
-      {/* Floating Interactive Guide Launcher (Desktop) */}
+      {/* Floating Interactive Guide Launcher */}
       <button
         onClick={() => {
           soundFx.playConfirm();
@@ -508,10 +580,10 @@ export default function Layout() {
         <span>Mission Guide (?)</span>
       </button>
 
-      {/* Floating Mobile Bottom Navigation Dock (Mobile Only) */}
+      {/* Floating Mobile Bottom Navigation Dock */}
       <MobileBottomNav onOpenCommandPalette={() => setShowCommandPalette(true)} />
 
-      {/* Global Command Palette (Ctrl+K / Cmd+K) */}
+      {/* Global Command Palette */}
       <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
 
       {/* Interactive Onboarding Mission Guide Wizard */}
