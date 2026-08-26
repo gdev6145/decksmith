@@ -702,6 +702,7 @@ ${build.tags.length ? `<div class="tags">${build.tags.map((t) => `<span class="t
           <BuildImage
             title={build.title}
             type={build.type}
+            slug={build.slug}
             parts={(build.parts || []).map((bp) => ({
               id: bp.part?.id,
               part: { name: bp.part?.name || "Unknown", category: bp.part?.category || "OTHER" },

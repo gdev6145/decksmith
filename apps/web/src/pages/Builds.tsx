@@ -345,6 +345,7 @@ export default function Builds() {
                 <BuildImage
                   title={build.title}
                   type={build.type}
+                  slug={build.slug}
                   parts={build.parts}
                   tags={build.tags}
                   budget={build.budget}

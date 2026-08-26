@@ -1,8 +1,11 @@
-import { useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
+import { Sparkles, Layers, Image as ImageIcon } from "lucide-react";
 
 interface BuildImageProps {
   title: string;
   type?: string;
+  slug?: string;
+  image?: string;
   parts?: Array<{ id?: string; part: { name: string; category: string } }>;
   tags?: string[];
   budget?: number | null;
@@ -50,6 +53,8 @@ function hslStr(h: number, s: number, l: number): string {
 export default function BuildImage({
   title,
   type = "Cyberdeck",
+  slug,
+  image,
   parts = [],
   tags = [],
   budget,
@@ -57,6 +62,11 @@ export default function BuildImage({
   height = 630,
 }: BuildImageProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const [imgError, setImgError] = useState(false);
+  const [viewMode, setViewMode] = useState<"photo" | "schematic">("photo");
+
+  // Determine prospective image url based on direct image or slug
+  const photoUrl = image || (slug ? `/builds/${slug}.jpg` : null);
 
   const h = hashStr(title);
   const [bg1, bg2] = TYPE_GRADIENTS[type] ?? TYPE_GRADIENTS.Cyberdeck;
@@ -108,8 +118,75 @@ export default function BuildImage({
     img.src = url;
   }, [title, width, height]);
 
+  // If photo is available and no load error and user is on photo view:
+  if (photoUrl && !imgError && viewMode === "photo") {
+    return (
+      <div className="relative w-full h-full overflow-hidden group/img bg-gray-950">
+        <img
+          src={photoUrl}
+          alt={title}
+          onError={() => setImgError(true)}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
+        />
+
+        {/* Tactical Gradient Vignette */}
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-950/90 via-gray-950/20 to-transparent pointer-events-none" />
+
+        {/* Badges Overlay */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+          <span className="px-2.5 py-1 rounded-md text-[10px] font-mono font-bold uppercase bg-gray-950/80 backdrop-blur-md text-neon-green border border-neon-green/30 shadow-lg">
+            {type}
+          </span>
+        </div>
+
+        {/* View Mode Switcher Button */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setViewMode("schematic");
+          }}
+          className="absolute top-3 right-3 p-1.5 rounded-lg bg-gray-950/80 hover:bg-gray-900 border border-gray-800 text-gray-300 hover:text-white backdrop-blur-md opacity-0 group-hover/img:opacity-100 transition-opacity z-10 text-[10px] font-mono flex items-center gap-1"
+          title="Switch to Vector Schematic"
+        >
+          <Layers className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Schematic</span>
+        </button>
+
+        {/* Footer Hardware Info Overlay */}
+        <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between z-10 pointer-events-none">
+          <div className="min-w-0 pr-2">
+            <h4 className="text-xs font-mono font-black text-white truncate drop-shadow-md">{title}</h4>
+            <div className="flex items-center gap-2 mt-0.5 text-[10px] font-mono text-gray-300">
+              <span className="text-cyan-300 font-bold">{safeParts.length} Verified Components</span>
+              {budget && <span>• ${budget} Budget</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Vector Schematic SVG View
   return (
-    <div className="relative group">
+    <div className="relative group w-full h-full bg-gray-950">
+      {photoUrl && !imgError && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setViewMode("photo");
+          }}
+          className="absolute top-3 right-3 p-1.5 rounded-lg bg-gray-950/80 hover:bg-gray-900 border border-gray-800 text-gray-300 hover:text-white backdrop-blur-md z-20 text-[10px] font-mono flex items-center gap-1"
+          title="Switch to Hardware Photo"
+        >
+          <ImageIcon className="w-3.5 h-3.5 text-neon-green" />
+          <span>Photo</span>
+        </button>
+      )}
+
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
@@ -118,185 +195,86 @@ export default function BuildImage({
         style={{ fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace" }}
       >
         <defs>
-          <linearGradient id={`bg-${h}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id={`bg-${h}`} x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor={bg1} />
             <stop offset="100%" stopColor={bg2} />
           </linearGradient>
-          <linearGradient id={`accent-${h}`} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor={accent} stopOpacity="0.9" />
-            <stop offset="100%" stopColor={accentGlow} stopOpacity="0.6" />
-          </linearGradient>
-          <filter id={`glow-${h}`}>
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <filter id={`glow-lg-${h}`}>
-            <feGaussianBlur stdDeviation="6" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <pattern id={`grid-${h}`} width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+          <pattern id={`grid-${h}`} width="30" height="30" patternUnits="userSpaceOnUse">
+            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
           </pattern>
+          <filter id={`glow-${h}`} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
         </defs>
 
         {/* Background */}
         <rect width={width} height={height} fill={`url(#bg-${h})`} />
         <rect width={width} height={height} fill={`url(#grid-${h})`} />
 
-        {/* Circuit lines */}
-        <line x1="0" y1="100" x2={width} y2="100" stroke={accent} strokeWidth="1" opacity="0.1" />
-        <line x1="0" y1="530" x2={width} y2="530" stroke={accent} strokeWidth="1" opacity="0.1" />
-        <line x1="100" y1="0" x2="100" y2={height} stroke={accent} strokeWidth="1" opacity="0.05" />
-        <line x1={width - 100} y1="0" x2={width - 100} y2={height} stroke={accent} strokeWidth="1" opacity="0.05" />
+        {/* Accent Lines */}
+        <line x1="0" y1="0" x2={width} y2="0" stroke={accent} strokeWidth="3" opacity="0.8" />
+        <line x1="0" y1={height} x2={width} y2={height} stroke={accent} strokeWidth="2" opacity="0.4" />
 
-        {/* Neon border */}
-        <rect
-          x="2" y="2" width={width - 4} height={height - 4}
-          fill="none"
-          stroke={accent}
-          strokeWidth="2"
-          rx="8"
-          opacity="0.4"
-          filter={`url(#glow-${h})`}
-        />
+        {/* Corner Brackets */}
+        <path d={`M 20 50 L 20 20 L 50 20`} fill="none" stroke={accent} strokeWidth="2" opacity="0.6" />
+        <path d={`M ${width - 50} 20 L ${width - 20} 20 L ${width - 20} 50`} fill="none" stroke={accent} strokeWidth="2" opacity="0.6" />
+        <path d={`M 20 ${height - 50} L 20 ${height - 20} L 50 ${height - 20}`} fill="none" stroke={accent} strokeWidth="2" opacity="0.6" />
+        <path d={`M ${width - 50} ${height - 20} L ${width - 20} ${height - 20} L ${width - 20} ${height - 50}`} fill="none" stroke={accent} strokeWidth="2" opacity="0.6" />
 
-        {/* Type chip */}
-        <rect x="30" y="24" width={type.length * 11 + 24} height="32" rx="16" fill={accent} opacity="0.15" />
-        <text x="42" y="46" fill={accent} fontSize="14" fontWeight="600" filter={`url(#glow-${h})`}>
+        {/* Title */}
+        <text x="60" y="80" fill="#ffffff" fontSize="32" fontWeight="bold" letterSpacing="1">
+          {title.length > 32 ? title.slice(0, 32) + "..." : title}
+        </text>
+
+        {/* Type Badge */}
+        <rect x="60" y="100" width={type.length * 10 + 20} height="26" rx="4" fill="rgba(255,255,255,0.06)" stroke={accent} strokeWidth="1" />
+        <text x="70" y="118" fill={accent} fontSize="12" fontWeight="bold" letterSpacing="2">
           {type.toUpperCase()}
         </text>
 
-        {/* Title */}
-        <text
-          x={width / 2}
-          y="90"
-          textAnchor="middle"
-          fill="white"
-          fontSize={title.length > 30 ? 36 : title.length > 20 ? 44 : 54}
-          fontWeight="700"
-          filter={`url(#glow-lg-${h})`}
-        >
-          {title.length > 40 ? title.slice(0, 38) + "…" : title}
+        {/* Parts Count / Budget */}
+        <text x={70 + type.length * 10 + 30} y="118" fill="#888888" fontSize="12">
+          {safeParts.length} PARTS {budget ? `· $${budget} BUDGET` : ""}
         </text>
 
-        {/* Category badges */}
-        {uniqueCategories.slice(0, 5).map((cat, i) => {
-          const cx = width / 2 - (uniqueCategories.length * 70) / 2 + i * 75;
-          const color = CATEGORY_COLORS[cat] || accent;
-          return (
-            <g key={cat}>
-              <rect x={cx} y="110" width="65" height="24" rx="12" fill={color} opacity="0.15" />
-              <text x={cx + 32} y="126" textAnchor="middle" fill={color} fontSize="11" fontWeight="600">
-                {cat}
-              </text>
-            </g>
-          );
-        })}
-
-        {/* Part grid */}
+        {/* Parts Grid */}
         {displayParts.map((bp, i) => {
           const col = i % gridCols;
           const row = Math.floor(i / gridCols);
-          const x = gridX + col * (cellW + 16);
-          const y = gridY + row * (cellH + 16);
-          const catColor = CATEGORY_COLORS[bp.part.category] || accent;
+          const cx = gridX + col * (cellW + 16);
+          const cy = gridY + row * (cellH + 16);
+          const cat = bp.part?.category ?? "OTHER";
+          const catColor = CATEGORY_COLORS[cat] ?? "#888888";
+          const partName = bp.part?.name ?? "Component";
+
           return (
-            <g key={bp.id ?? i}>
-              <rect x={x} y={y} width={cellW} height={cellH} rx="12" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
-              <rect x={x + 8} y={y + 8} width={cellW - 16} height={cellH - 48} rx="8" fill={catColor} opacity="0.1" />
-              <text
-                x={x + cellW / 2}
-                y={y + (cellH - 48) / 2 + 12}
-                textAnchor="middle"
-                fill={catColor}
-                fontSize="28"
-                opacity="0.6"
-              >
-                {bp.part.category === "SBC" ? "💻" : bp.part.category === "DISPLAY" ? "🖥" : bp.part.category === "BATTERY" ? "🔋" : bp.part.category === "POWER" ? "⚡" : bp.part.category === "STORAGE" ? "💾" : bp.part.category === "NETWORK" ? "📡" : bp.part.category === "INPUT" ? "⌨" : "📦"}
+            <g key={i}>
+              <rect x={cx} y={cy} width={cellW} height={cellH} rx="8" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />
+              <rect x={cx} y={cy} width={cellW} height="4" rx="2" fill={catColor} opacity="0.8" />
+              <text x={cx + 12} y={cy + 26} fill={catColor} fontSize="9" fontWeight="bold" letterSpacing="1">
+                {cat}
               </text>
-              <text
-                x={x + cellW / 2}
-                y={y + cellH - 28}
-                textAnchor="middle"
-                fill="rgba(255,255,255,0.8)"
-                fontSize="13"
-                fontWeight="500"
-              >
-                {bp.part.name.length > 18 ? bp.part.name.slice(0, 16) + "…" : bp.part.name}
+              <text x={cx + 12} y={cy + 60} fill="#e0e0e0" fontSize="11" fontWeight="bold">
+                {partName.slice(0, 16)}
               </text>
-              <text
-                x={x + cellW / 2}
-                y={y + cellH - 10}
-                textAnchor="middle"
-                fill={catColor}
-                fontSize="10"
-                opacity="0.7"
-              >
-                {bp.part.category}
-              </text>
+              {partName.length > 16 && (
+                <text x={cx + 12} y={cy + 76} fill="#e0e0e0" fontSize="11" fontWeight="bold">
+                  {partName.slice(16, 32)}
+                </text>
+              )}
             </g>
           );
         })}
 
-        {/* Empty state */}
-        {displayParts.length === 0 && (
-          <text x={width / 2} y={height / 2 + 20} textAnchor="middle" fill="rgba(255,255,255,0.15)" fontSize="48">
-            🔧
-          </text>
-        )}
-
-        {/* Budget */}
-        {budget != null && (
-          <g>
-            <rect x={width - 160} y="24" width="130" height="32" rx="16" fill="rgba(0,255,136,0.1)" />
-            <text x={width - 95} y="46" textAnchor="middle" fill="#00ff88" fontSize="15" fontWeight="700">
-              ${budget.toLocaleString()}
-            </text>
-          </g>
-        )}
-
-        {/* Tags */}
-        {safeTags.slice(0, 4).map((tag, i) => (
-          <g key={tag}>
-            <rect
-              x={width / 2 - (safeTags.slice(0, 4).length * 80) / 2 + i * 85}
-              y={gridY + gridH + 30}
-              width={tag.length * 8 + 16}
-              height="24"
-              rx="12"
-              fill="rgba(255,255,255,0.06)"
-            />
-            <text
-              x={width / 2 - (safeTags.slice(0, 4).length * 80) / 2 + i * 85 + tag.length * 4 + 8}
-              y={gridY + gridH + 46}
-              textAnchor="middle"
-              fill="rgba(255,255,255,0.5)"
-              fontSize="11"
-            >
-              #{tag}
-            </text>
-          </g>
-        ))}
-
-        {/* Branding */}
-        <text x={width - 20} y={height - 16} textAnchor="end" fill="rgba(255,255,255,0.15)" fontSize="12" fontWeight="600">
-          DECKSMITH
+        {/* Watermark */}
+        <text x={width - 60} y={height - 30} textAnchor="end" fill="rgba(255,255,255,0.2)" fontSize="11" letterSpacing="2">
+          DECKSMIITH // HARDWARE ARCHITECT
         </text>
       </svg>
-
-      {/* Export button */}
-      <button
-        onClick={exportPng}
-        className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900/80 text-gray-300 text-xs px-3 py-1.5 rounded-lg hover:text-neon-green border border-gray-700"
-      >
-        Save PNG
-      </button>
     </div>
   );
 }
