@@ -40,9 +40,12 @@ import {
   HelpCircle,
   Thermometer,
   Crosshair,
+  Tag,
 } from "lucide-react";
 import { API_URL } from "@/lib/config";
 import { BUILD_TYPES, PART_CATEGORIES, type PartCategory } from "@decksmith/shared";
+import { useAuth } from "../AuthContext";
+import { useNotification } from "../NotificationContext";
 import { soundFx } from "../lib/soundFx";
 
 interface PartItem {
@@ -176,6 +179,8 @@ const PRESETS: Record<
 
 export default function BuildCreator() {
   const navigate = useNavigate();
+  const { token } = useAuth();
+  const { dispatchToast } = useNotification();
   const [allParts, setAllParts] = useState<PartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedSlots, setSelectedSlots] = useState<SelectedSlots>({});
@@ -801,7 +806,37 @@ echo "✅ Decksmith provisioning complete. Rebooting system in 5s..."
     link.download = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-fabrication-dossier.json`;
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+  };
+
+  const handleWatchAllBlueprintParts = async () => {
+    if (selectedPartsList.length === 0) return;
+    soundFx.playConfirm();
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      for (const part of selectedPartsList) {
+        await fetch(`${API_URL}/api/alerts/watch`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            partId: part.id,
+            alertOnDrop: true,
+            alertOnIncrease: true,
+          }),
+        });
+      }
+
+      dispatchToast({
+        type: "price_drop",
+        title: `👁️ Watching ${selectedPartsList.length} Blueprint Parts`,
+        message: `Now tracking live market price drops across all components in "${title}".`,
+        url: "/price-watch",
+        actionLabel: "View Watched Hub",
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const activeSlotConfig = CATEGORY_SLOTS.find((s) => s.key === activeSlot);
@@ -879,6 +914,15 @@ echo "✅ Decksmith provisioning complete. Rebooting system in 5s..."
           >
             <Download className="w-3.5 h-3.5" />
             BOM CSV
+          </button>
+          <button
+            onClick={handleWatchAllBlueprintParts}
+            disabled={selectedPartsList.length === 0}
+            className="px-3.5 py-2 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            title="Track price drops for all selected components"
+          >
+            <Tag className="w-3.5 h-3.5 text-amber-400" />
+            Watch All Parts
           </button>
           <button
             onClick={downloadCompleteDossier}
