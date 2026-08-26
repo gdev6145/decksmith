@@ -1,6 +1,19 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Trophy, Eye, Heart, Wrench, Calendar, Medal, Crown, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Trophy,
+  Eye,
+  Heart,
+  Wrench,
+  Calendar,
+  Medal,
+  Crown,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  Scale,
+  Check,
+} from "lucide-react";
 import { API_URL } from "../lib/config";
 import { soundFx } from "../lib/soundFx";
 
@@ -18,15 +31,18 @@ interface LeaderboardBuild {
 }
 
 export default function Leaderboard() {
+  const navigate = useNavigate();
   const [builds, setBuilds] = useState<LeaderboardBuild[]>([]);
-  const [sort, setSort] = useState("upvotes");
+  const [sort, setSort] = useState<"upvotes" | "views">("upvotes");
+  const [selectedType, setSelectedType] = useState<string>("ALL");
+  const [compareIds, setCompareIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_URL}/api/builds/leaderboard?sort=${sort}&limit=20`);
+        const res = await fetch(`${API_URL}/api/builds/leaderboard?sort=${sort}&limit=30`);
         if (res.ok) {
           setBuilds(await res.json());
         }
@@ -38,6 +54,38 @@ export default function Leaderboard() {
     };
     fetchLeaderboard();
   }, [sort]);
+
+  const categories = useMemo(() => {
+    const types = new Set(builds.map((b) => b.type).filter(Boolean));
+    return ["ALL", ...Array.from(types)];
+  }, [builds]);
+
+  const filteredBuilds = useMemo(() => {
+    if (selectedType === "ALL") return builds;
+    return builds.filter((b) => b.type.toLowerCase() === selectedType.toLowerCase());
+  }, [builds, selectedType]);
+
+  const toggleCompare = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    soundFx.playClick();
+    setCompareIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
+      }
+      if (prev.length >= 2) {
+        return [prev[1], id];
+      }
+      return [...prev, id];
+    });
+  };
+
+  const handleLaunchCompare = () => {
+    if (compareIds.length === 2) {
+      soundFx.playConfirm();
+      navigate(`/compare?ids=${compareIds.join(",")}`);
+    }
+  };
 
   const medals = [
     { bg: "bg-yellow-500/20 text-yellow-400 border-yellow-500/40", icon: Crown },
@@ -87,26 +135,72 @@ export default function Leaderboard() {
         </div>
       </div>
 
+      {/* Category Pills & Compare Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                soundFx.playClick();
+                setSelectedType(cat);
+              }}
+              className={`px-3 py-1.5 rounded-xl uppercase font-bold transition-all whitespace-nowrap ${
+                selectedType === cat
+                  ? "bg-gray-800 text-white border border-gray-700 shadow-sm"
+                  : "bg-gray-950/80 text-gray-500 border border-gray-900 hover:text-gray-300"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {compareIds.length > 0 && (
+          <div className="flex items-center gap-2 bg-gray-900 border border-gray-800 p-1.5 rounded-2xl">
+            <span className="text-[11px] text-gray-400 px-2 font-bold">
+              {compareIds.length}/2 Selected
+            </span>
+            <button
+              onClick={handleLaunchCompare}
+              disabled={compareIds.length !== 2}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                compareIds.length === 2
+                  ? "bg-neon-green text-black shadow-md shadow-neon-green/20"
+                  : "bg-gray-800 text-gray-500 cursor-not-allowed"
+              }`}
+            >
+              <Scale className="w-3.5 h-3.5" />
+              <span>Compare Blueprints</span>
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Leaderboard Table / Cards */}
       {loading ? (
         <div className="py-16 text-center text-gray-400 font-mono">
           <div className="w-10 h-10 border-2 border-neon-green border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           Ranking operative telemetry...
         </div>
-      ) : builds.length > 0 ? (
+      ) : filteredBuilds.length > 0 ? (
         <div className="space-y-3">
-          {builds.map((b, idx) => {
-            const medal = idx < 3 ? medals[idx] : null;
+          {filteredBuilds.map((b, idx) => {
+            const medal = idx < 3 && selectedType === "ALL" ? medals[idx] : null;
             const MedalIcon = medal ? medal.icon : null;
+            const isSelectedForCompare = compareIds.includes(b.id);
+
             return (
               <Link
                 key={b.id}
                 to={`/builds/${b.slug}`}
                 onClick={() => soundFx.playClick()}
                 className={`p-4 sm:p-5 rounded-2xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group ${
-                  idx === 0
+                  idx === 0 && selectedType === "ALL"
                     ? "bg-gray-900/90 border-yellow-500/40 shadow-xl shadow-yellow-500/5 hover:border-yellow-400"
-                    : "bg-gray-900/60 border-gray-800 hover:border-neon-green"
+                    : isSelectedForCompare
+                    ? "bg-gray-900 border-neon-green shadow-md shadow-neon-green/10"
+                    : "bg-gray-900/60 border-gray-800 hover:border-gray-700"
                 }`}
               >
                 <div className="flex items-center gap-4 min-w-0">
@@ -137,8 +231,21 @@ export default function Leaderboard() {
                   </div>
                 </div>
 
-                {/* Score Stats */}
-                <div className="flex items-center gap-4 shrink-0 self-end sm:self-center">
+                {/* Score Stats & Compare Action */}
+                <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                  <button
+                    onClick={(e) => toggleCompare(e, b.id)}
+                    className={`p-2 rounded-xl border text-xs font-bold transition-all flex items-center gap-1 ${
+                      isSelectedForCompare
+                        ? "bg-neon-green text-black border-neon-green"
+                        : "bg-gray-950 border-gray-800 text-gray-400 hover:text-white"
+                    }`}
+                    title="Select to compare"
+                  >
+                    <Scale className="w-3.5 h-3.5" />
+                    <span className="text-[10px]">{isSelectedForCompare ? "Selected" : "Compare"}</span>
+                  </button>
+
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-950 border border-gray-800 text-xs font-bold text-red-400">
                     <Heart className="w-4 h-4 fill-red-400" />
                     <span>{b.upvotes}</span>
@@ -149,7 +256,9 @@ export default function Leaderboard() {
                     <span>{b.views}</span>
                   </div>
 
-                  <ChevronRightIcon />
+                  <div className="w-8 h-8 rounded-xl bg-gray-950 border border-gray-800 flex items-center justify-center text-gray-500 group-hover:text-neon-green group-hover:border-neon-green transition-all">
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
               </Link>
             );
@@ -157,7 +266,7 @@ export default function Leaderboard() {
         </div>
       ) : (
         <div className="p-12 text-center bg-gray-900/40 border border-gray-800 rounded-3xl space-y-3">
-          <p className="text-sm text-gray-400">No builds on the leaderboard yet. Be the first to publish a build!</p>
+          <p className="text-sm text-gray-400">No builds found in this category.</p>
           <Link
             to="/builder"
             className="inline-flex items-center gap-2 px-4 py-2 bg-neon-green text-black font-bold rounded-xl text-xs"
@@ -166,14 +275,6 @@ export default function Leaderboard() {
           </Link>
         </div>
       )}
-    </div>
-  );
-}
-
-function ChevronRightIcon() {
-  return (
-    <div className="w-8 h-8 rounded-xl bg-gray-950 border border-gray-800 flex items-center justify-center text-gray-500 group-hover:text-neon-green group-hover:border-neon-green transition-all">
-      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
     </div>
   );
 }
