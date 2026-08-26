@@ -27,6 +27,11 @@ import {
   ShieldAlert,
   Music,
   Usb,
+  Tag,
+  Settings as SettingsIcon,
+  HelpCircle,
+  Bell,
+  SlidersHorizontal,
 } from "lucide-react";
 
 import { soundFx } from "../lib/soundFx";
@@ -49,6 +54,7 @@ interface CommandPaletteProps {
 export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -64,6 +70,24 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       badge: "Studio",
     },
     {
+      id: "tool-price-watch",
+      category: "Tools",
+      title: "Watched Hardware & Price Alerts",
+      subtitle: "Live component market price drop tracking & supplier alerts",
+      icon: Tag,
+      action: () => { navigate("/price-watch"); onClose(); },
+      badge: "Tracker",
+    },
+    {
+      id: "tool-pcb",
+      category: "Tools",
+      title: "Gerber & KiCad PCB Layer Viewer Studio",
+      subtitle: "Multi-layer copper trace inspection, SMT footprint verification, DRC rules, and Gerber export",
+      icon: Cpu,
+      action: () => { navigate("/pcb"); onClose(); },
+      badge: "PCB",
+    },
+    {
       id: "tool-cad",
       category: "Tools",
       title: "CAD & CNC Fabrication Studio",
@@ -75,20 +99,20 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     {
       id: "tool-assembly",
       category: "Tools",
-      title: "3D Exploded Assembly & Stacking Guide Studio",
+      title: "3D Exploded Assembly Guide Studio",
       subtitle: "Layer-by-layer 3D explosion slider, screw torque limits, and printable build manual",
       icon: Layers,
       action: () => { navigate("/assembly"); onClose(); },
       badge: "Assembly",
     },
     {
-      id: "tool-pcb",
+      id: "tool-serial",
       category: "Tools",
-      title: "Gerber & KiCad PCB Layer Viewer Studio",
-      subtitle: "Multi-layer copper trace inspection, SMT footprint verification, DRC rules, and Gerber export",
-      icon: Cpu,
-      action: () => { navigate("/pcb"); onClose(); },
-      badge: "PCB",
+      title: "WebSerial & MCU Hardware Flasher Studio",
+      subtitle: "Direct USB-to-UART serial terminal and MicroPython/WLED/QMK flasher",
+      icon: Usb,
+      action: () => { navigate("/serial"); onClose(); },
+      badge: "WebSerial",
     },
     {
       id: "tool-flasher",
@@ -178,13 +202,13 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       subtitle: "Inspect STL models, simulate infill, and calculate filament mass and print cost",
       icon: Printer,
       action: () => { navigate("/stl"); onClose(); },
-      badge: "3D Print",
+      badge: "STL Slicer",
     },
     {
       id: "tool-power",
       category: "Tools",
-      title: "Tactical Power Delivery & USB-PD / BMS Studio",
-      subtitle: "Multi-rail DC power tree, AWG wire drop calculator, and USB-C PD sink triggers",
+      title: "Power Delivery & Battery Studio",
+      subtitle: "Transient brownout simulation, AWG voltage drop, and USB-PD sink profiles",
       icon: Zap,
       action: () => { navigate("/power"); onClose(); },
       badge: "Power",
@@ -192,17 +216,17 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     {
       id: "tool-harness",
       category: "Tools",
-      title: "Wiring Harness & Cable Assembly Loom Studio",
-      subtitle: "Pin-to-pin interconnect matrix, wire color coding, and WireViz YAML export",
+      title: "Wiring Harness & Cable Loom Studio",
+      subtitle: "Schematic wiring netlists, wire gauge sizing, and printable harness pinout charts",
       icon: Layers,
       action: () => { navigate("/harness"); onClose(); },
-      badge: "Loom",
+      badge: "Wiring",
     },
     {
       id: "tool-sdr",
       category: "Tools",
-      title: "Tactical SDR Spectrum & Mesh Radio Studio",
-      subtitle: "Spectrogram waterfall, resonant antenna tuner, and Meshtastic presets",
+      title: "SDR & Radio Frequency Studio",
+      subtitle: "Spectrum waterfall visualizer, antenna resonance calculator, and filter design",
       icon: Radio,
       action: () => { navigate("/sdr"); onClose(); },
       badge: "SDR",
@@ -210,8 +234,8 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     {
       id: "tool-gps",
       category: "Tools",
-      title: "Tactical GPS NMEA & Satellite Constellation HUD",
-      subtitle: "Polar skyplot constellation radar, NMEA-0183 decoder, and Stratum-1 NTP",
+      title: "GPS & Satellite Tracking Studio",
+      subtitle: "NMEA sentence decoder, skyplot constellation view, and Maidenhead grid locator",
       icon: Compass,
       action: () => { navigate("/gps"); onClose(); },
       badge: "GNSS",
@@ -219,154 +243,141 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
     {
       id: "tool-router",
       category: "Tools",
-      title: "Custom Router & Firewall Gateway Studio",
-      subtitle: "OpenWrt / pfSense hardware architect, WireGuard throughput, and UCI configs",
+      title: "Router & Firewall Studio",
+      subtitle: "nftables firewall generator, WireGuard VPN mesh, and captive portal manager",
       icon: RouterIcon,
       action: () => { navigate("/router"); onClose(); },
-      badge: "Router",
+      badge: "NetSec",
     },
     {
-      id: "tool-survival",
+      id: "tool-airgap",
       category: "Tools",
-      title: "Airgap Field Survival & KiCad PCB Studio",
-      subtitle: "Peukert's sub-zero battery derating, offline disaster manuals, and KiCad 8.0 netlists",
+      title: "Airgap & Survival Studio",
+      subtitle: "Faraday attenuation calculator, optical audio airgap, and hardware kill switch guide",
       icon: ShieldAlert,
-      action: () => { navigate("/survival"); onClose(); },
+      action: () => { navigate("/airgap"); onClose(); },
       badge: "Airgap",
     },
     {
       id: "tool-logic",
       category: "Tools",
-      title: "Hardware Bus Sniffer & Logic Analyzer Studio",
-      subtitle: "I2C, SPI, UART digital waveform timing diagrams and PulseView exports",
+      title: "Logic Analyzer & Protocol Decoder",
+      subtitle: "Multi-channel digital waveform viewer for I2C, SPI, UART, and 1-Wire",
       icon: Activity,
       action: () => { navigate("/logic"); onClose(); },
       badge: "Logic",
     },
     {
-      id: "tool-synth",
+      id: "tool-audio",
       category: "Tools",
-      title: "Cyberdeck Audio DSP & Chiptune Synth Studio",
-      subtitle: "16-step tracker sequencer, I2S DAC codecs, and ALSA asound.conf exporter",
+      title: "Chiptune Audio Synth & Tracker Studio",
+      subtitle: "4-channel chiptune synthesizer, step sequencer, and I2S DAC configuration",
       icon: Music,
-      action: () => { navigate("/synth"); onClose(); },
-      badge: "Audio",
+      action: () => { navigate("/audio"); onClose(); },
+      badge: "Chiptune",
+    },
+
+    // Navigation
+    {
+      id: "nav-parts",
+      category: "Navigation",
+      title: "Parts Catalog",
+      subtitle: "Browse 112+ verified cyberdeck hardware components",
+      icon: Cpu,
+      action: () => { navigate("/parts"); onClose(); },
+      badge: "Catalog",
     },
     {
-      id: "tool-serial",
-      category: "Tools",
-      title: "WebSerial Terminal & MCU Flasher Studio",
-      subtitle: "Direct USB-UART serial link, ASCII/Hex debug monitor, and MicroPython/CircuitPython flasher",
-      icon: Usb,
-      action: () => { navigate("/serial"); onClose(); },
-      badge: "WebSerial",
+      id: "nav-builds",
+      category: "Navigation",
+      title: "Community Builds Directory",
+      subtitle: "Explore, star, and fork operative cyberdeck creations",
+      icon: Wrench,
+      action: () => { navigate("/builds"); onClose(); },
+      badge: "Gallery",
     },
     {
-      id: "tool-guide",
-      category: "Tools",
-      title: "Interactive Mission Guide & Onboarding Wizard",
-      subtitle: "Step-by-step interactive quest for new builders (Hardware, CAD, Power, Flasher, RF)",
-      icon: Sparkles,
-      action: () => {
-        onClose();
-        // Dispatch synthetic F1 keypress or global custom event
-        window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1" }));
-      },
-      badge: "Wizard",
-    },
-    {
-      id: "tool-chat",
-      category: "Tools",
-      title: "AI Hardware Architect Chat",
-      subtitle: "Chat with AI to design custom cyberdecks, pinouts, and power supplies",
-      icon: MessageSquare,
-      action: () => { navigate("/chat"); onClose(); },
-      badge: "AI",
+      id: "nav-settings",
+      category: "Navigation",
+      title: "Operative Station Settings",
+      subtitle: "Configure callsigns, sound effects, units, and notifications",
+      icon: SettingsIcon,
+      action: () => { navigate("/settings"); onClose(); },
+      badge: "Config",
     },
 
     // Presets
     {
       id: "preset-netrunner",
       category: "Presets",
-      title: "Shadow Netrunner MK-IV",
-      subtitle: "Pi 5 + Waveshare 11.9\" Ultrawide + BBQ20 Keyboard",
-      icon: Zap,
-      action: () => { navigate("/builds/shadow-netrunner-mk-iv"); onClose(); },
-      badge: "Verified",
+      title: "Load Preset: Shadow Netrunner MK-IV",
+      subtitle: "Pi 5 8GB + 11.9\" Bar LCD + BBQ20 Keyboard + Pelican 1150",
+      icon: Compass,
+      action: () => { navigate("/builder"); onClose(); },
+      badge: "Preset",
     },
     {
-      id: "preset-solar",
+      id: "preset-meshtastic",
       category: "Presets",
-      title: "Solar Off-Grid Field Comms Deck",
-      subtitle: "Pi Zero 2 W + 2.9\" E-Ink + Meshtastic LoRa 915MHz",
+      title: "Load Preset: Nomad LoRa Field Unit",
+      subtitle: "Pi Zero 2 W + SX1262 LoRa + 5\" LCD + 10000mAh Solar BMS",
       icon: Radio,
-      action: () => { navigate("/builds/solar-off-grid-field-comms-deck"); onClose(); },
-      badge: "Off-Grid",
+      action: () => { navigate("/builder"); onClose(); },
+      badge: "Preset",
     },
     {
       id: "preset-nas",
       category: "Presets",
-      title: "Silent 4-Bay Micro ZFS Server",
-      subtitle: "CM4 + 4x 4TB Red Plus + Noctua PWM Cooling",
+      title: "Load Preset: Silent 4-Bay ZFS NAS",
+      subtitle: "Rock 5B + 4x M.2 NVMe + 10GbE + Custom Aluminum Enclosure",
       icon: HardDrive,
-      action: () => { navigate("/builds/silent-4-bay-micro-zfs-server"); onClose(); },
-      badge: "NAS",
-    },
-    {
-      id: "preset-sigint",
-      category: "Presets",
-      title: "SIGINT Field Spectrum Scanner",
-      subtitle: "Rock 5B + HackRF One 1MHz-6GHz + Pelican 1200",
-      icon: Compass,
-      action: () => { navigate("/builds/sigint-field-spectrum-scanner"); onClose(); },
-      badge: "SIGINT",
+      action: () => { navigate("/builder"); onClose(); },
+      badge: "Preset",
     },
 
-    // Navigation
+    // Actions
     {
-      id: "nav-builds",
-      category: "Navigation",
-      title: "Explore Community Builds",
-      subtitle: "Browse custom cyberdecks, androdecks, and field terminals",
-      icon: Wrench,
-      action: () => { navigate("/builds"); onClose(); },
-    },
-    {
-      id: "nav-parts",
-      category: "Navigation",
-      title: "Parts Catalog & Prices",
-      subtitle: "Search 50+ SBCs, displays, batteries, and mechanical keyboards",
-      icon: Cpu,
-      action: () => { navigate("/parts"); onClose(); },
+      id: "action-toggle-sound",
+      category: "Actions",
+      title: "Toggle Cyberpunk Audio Sound FX",
+      subtitle: "Mute or enable tactical mechanical UI clicks and chimes",
+      icon: Sparkles,
+      action: () => {
+        soundFx.toggleSound();
+        onClose();
+      },
+      badge: "Action",
     },
   ];
 
-  const filteredItems = allItems.filter(
-    (item) =>
+  const categories = ["All", "Tools", "Navigation", "Presets", "Actions"];
+
+  const filteredItems = allItems.filter((item) => {
+    const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+    const matchesQuery =
       item.title.toLowerCase().includes(query.toLowerCase()) ||
       item.subtitle.toLowerCase().includes(query.toLowerCase()) ||
-      item.category.toLowerCase().includes(query.toLowerCase())
-  );
+      (item.badge && item.badge.toLowerCase().includes(query.toLowerCase()));
+    return matchesCategory && matchesQuery;
+  });
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [query]);
+  }, [query, selectedCategory]);
 
   useEffect(() => {
     if (isOpen) {
       soundFx.playPaletteOpen();
       setTimeout(() => inputRef.current?.focus(), 50);
-    } else {
-      setQuery("");
     }
   }, [isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) {
-        if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        if ((e.ctrlKey || e.metaKey) && e.key === "k") {
           e.preventDefault();
-          onClose(); // toggle
+          onClose(); // toggle behavior managed by parent
         }
         return;
       }
@@ -393,92 +404,119 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, selectedIndex, filteredItems, onClose]);
+  }, [isOpen, filteredItems, selectedIndex, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-start justify-center pt-20 p-4 z-50 animate-in fade-in duration-150">
-      <div
-        className="bg-gray-950 border-2 border-neon-green/40 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden font-sans relative"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-24 px-4 font-mono">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity" onClick={onClose} />
+
+      {/* Palette Modal */}
+      <div className="relative w-full max-w-2xl bg-gray-950 border border-neon-green/40 rounded-3xl shadow-2xl shadow-neon-green/10 overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-150">
         {/* Search Header */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-gray-800 bg-gray-900/60">
-          <Search className="w-5 h-5 text-neon-green" />
+        <div className="p-4 border-b border-gray-800 flex items-center gap-3 bg-gray-900/60">
+          <Search className="w-5 h-5 text-neon-green shrink-0" />
           <input
             ref={inputRef}
             type="text"
+            placeholder="Type a command, studio name, preset, or action..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command, tool, preset, or part... (↑↓ to navigate, Enter to open)"
-            className="w-full bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none font-mono"
+            className="w-full bg-transparent text-sm text-white placeholder-gray-500 focus:outline-none"
           />
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700">
-            ESC
-          </span>
+          <div className="flex items-center gap-1">
+            <kbd className="px-2 py-0.5 text-[10px] bg-gray-800 text-gray-400 rounded-md border border-gray-700">ESC</kbd>
+          </div>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex gap-2 px-4 py-2 bg-gray-950/80 border-b border-gray-800/80 text-[11px] overflow-x-auto">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                soundFx.playClick();
+                setSelectedCategory(cat);
+              }}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                selectedCategory === cat
+                  ? "bg-neon-green text-black shadow-sm"
+                  : "text-gray-400 hover:text-white hover:bg-gray-900"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
         </div>
 
         {/* Results List */}
-        <div className="max-h-96 overflow-y-auto p-2 space-y-1">
+        <div className="max-h-[380px] overflow-y-auto p-2 space-y-1">
           {filteredItems.length === 0 ? (
-            <div className="py-8 text-center text-xs text-gray-500 font-mono">
-              No matching commands or tools found for "{query}"
+            <div className="p-8 text-center text-xs text-gray-500">
+              No commands or hardware studios found matching "{query}".
             </div>
           ) : (
-            filteredItems.map((item, idx) => {
+            filteredItems.map((item, index) => {
               const Icon = item.icon;
-              const isSelected = idx === selectedIndex;
+              const isSelected = index === selectedIndex;
               return (
                 <div
                   key={item.id}
-                  onClick={item.action}
-                  onMouseEnter={() => setSelectedIndex(idx)}
-                  className={`p-3 rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+                  onClick={() => {
+                    soundFx.playConfirm();
+                    item.action();
+                  }}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all ${
                     isSelected
-                      ? "bg-neon-green/10 border border-neon-green/40 text-white"
-                      : "hover:bg-gray-900/80 border border-transparent text-gray-300"
+                      ? "bg-gray-900 border border-neon-green/50 text-white shadow-md shadow-neon-green/5"
+                      : "text-gray-300 hover:bg-gray-900/50 border border-transparent"
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`p-2 rounded-lg ${
-                        isSelected ? "bg-neon-green text-gray-950" : "bg-gray-900 text-neon-green"
+                      className={`p-2 rounded-xl border ${
+                        isSelected
+                          ? "bg-neon-green/10 border-neon-green/40 text-neon-green"
+                          : "bg-gray-900 border-gray-800 text-gray-400"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-white">{item.title}</span>
+                      <div className="text-xs font-bold text-white flex items-center gap-2">
+                        <span>{item.title}</span>
                         {item.badge && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-gray-800 text-cyan-400 border border-gray-700">
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-gray-800 border border-gray-700 text-cyan-300">
                             {item.badge}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-400 line-clamp-1">{item.subtitle}</p>
+                      <div className="text-[10px] text-gray-400 line-clamp-1">{item.subtitle}</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono text-gray-500 uppercase">{item.category}</span>
-                    <ArrowRight className={`w-3.5 h-3.5 ${isSelected ? "text-neon-green" : "text-gray-600"}`} />
-                  </div>
+                  <ArrowRight
+                    className={`w-4 h-4 transition-transform ${
+                      isSelected ? "text-neon-green translate-x-1" : "text-gray-600"
+                    }`}
+                  />
                 </div>
               );
             })
           )}
         </div>
 
-        {/* Footer */}
-        <div className="px-4 py-2 bg-gray-950 border-t border-gray-900 flex items-center justify-between text-[10px] font-mono text-gray-500">
-          <span>Decksmith Command Palette</span>
+        {/* Footer Navigation Hints */}
+        <div className="p-2.5 px-4 bg-gray-900/80 border-t border-gray-800 flex items-center justify-between text-[10px] text-gray-500">
           <div className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Select</span>
-            <span>Esc Close</span>
+            <span>ESC Close</span>
           </div>
+          <span className="text-neon-green font-bold">DECKSMITH v2.5 PRO</span>
         </div>
       </div>
     </div>
