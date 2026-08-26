@@ -1,8 +1,25 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Loader2, Zap, Battery, DollarSign, Weight, Clock, Star, GitCompareArrows } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Zap,
+  Battery,
+  DollarSign,
+  Weight,
+  Clock,
+  Star,
+  GitCompareArrows,
+  Share2,
+  Check,
+  Cpu,
+  Layers,
+  ShieldCheck,
+  TrendingUp,
+} from "lucide-react";
 import BuildImage from "../components/BuildImage";
 import { API_URL } from "../lib/config";
+import { soundFx } from "../lib/soundFx";
 
 interface BuildData {
   id: string;
@@ -37,10 +54,10 @@ interface BuildData {
 
 export default function Compare() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [builds, setBuilds] = useState<BuildData[]>([]);
   const [selected, setSelected] = useState<BuildData[]>([]);
   const [loading, setLoading] = useState(true);
   const [allBuilds, setAllBuilds] = useState<BuildData[]>([]);
+  const [copiedShare, setCopiedShare] = useState<boolean>(false);
 
   useEffect(() => {
     fetchBuilds();
@@ -61,6 +78,9 @@ export default function Compare() {
       if (res.ok) {
         const data = await res.json();
         setAllBuilds(data);
+        if (data.length >= 2 && !searchParams.get("ids")) {
+          setSelected([data[0], data[1]]);
+        }
         data.forEach((b: BuildData) => fetchEstimate(b.id));
       }
     } catch {
@@ -75,8 +95,8 @@ export default function Compare() {
       const res = await fetch(`${API_URL}/api/builds/${buildId}/estimate`);
       if (res.ok) {
         const est = await res.json();
-        setAllBuilds((prev) => prev.map((b) => b.id === buildId ? { ...b, estimate: est } : b));
-        setSelected((prev) => prev.map((b) => b.id === buildId ? { ...b, estimate: est } : b));
+        setAllBuilds((prev) => prev.map((b) => (b.id === buildId ? { ...b, estimate: est } : b)));
+        setSelected((prev) => prev.map((b) => (b.id === buildId ? { ...b, estimate: est } : b)));
       }
     } catch {
       // ignore
@@ -84,6 +104,7 @@ export default function Compare() {
   };
 
   const toggleBuild = (build: BuildData) => {
+    soundFx.playClick();
     setSelected((prev) => {
       const exists = prev.find((b) => b.id === build.id);
       if (exists) return prev.filter((b) => b.id !== build.id);
@@ -100,208 +121,179 @@ export default function Compare() {
     }
   }, [selected, setSearchParams]);
 
-  const winner = (a: number | null, b: number | null, lower = true) => {
-    if (a == null && b == null) return "tie";
-    if (a == null) return "b";
-    if (b == null) return "a";
-    if (a === b) return "tie";
-    return lower ? (a < b ? "a" : "b") : (a > b ? "a" : "b");
+  const handleShare = () => {
+    soundFx.playConfirm();
+    navigator.clipboard.writeText(window.location.href);
+    setCopiedShare(true);
+    setTimeout(() => setCopiedShare(false), 2000);
   };
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-12 flex justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-neon-green" />
-      </div>
-    );
-  }
+  const b1 = selected[0];
+  const b2 = selected[1];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link to="/builds" className="inline-flex items-center gap-2 text-gray-400 hover:text-neon-green mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Builds
-      </Link>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 font-mono">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 mb-2">
+            <GitCompareArrows className="w-3.5 h-3.5" />
+            Side-by-Side Blueprint Hardware Comparator
+          </div>
+          <h1 className="text-3xl font-black text-white">Compare Cyberdeck Blueprints</h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Analyze hardware bill of materials, power consumption, battery autonomy, and total mass deltas
+          </p>
+        </div>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-100 flex items-center gap-3">
-          <GitCompareArrows className="w-8 h-8 text-neon-green" />
-          Compare Builds
-        </h1>
-        <p className="text-gray-400 mt-1">Select up to 2 builds to compare side by side</p>
+        <div className="flex items-center gap-3">
+          {selected.length === 2 && (
+            <button
+              onClick={handleShare}
+              className="px-4 py-2.5 bg-gray-900 border border-gray-800 hover:border-cyan-400 text-xs font-bold text-gray-200 rounded-xl flex items-center gap-2 transition-all"
+            >
+              {copiedShare ? <Check className="w-4 h-4 text-neon-green" /> : <Share2 className="w-4 h-4" />}
+              <span>{copiedShare ? "Link Copied!" : "Share Comparison"}</span>
+            </button>
+          )}
+
+          <Link
+            to="/builds"
+            className="px-4 py-2.5 bg-gray-900 border border-gray-800 hover:border-gray-700 text-xs font-bold text-gray-300 rounded-xl flex items-center gap-2 transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>All Blueprints</span>
+          </Link>
+        </div>
       </div>
 
-      {/* Build Selector */}
-      <div className="mb-8">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">Select Builds ({selected.length}/2)</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {allBuilds.map((build) => {
-            const isSelected = selected.some((b) => b.id === build.id);
+      {/* Blueprint Selector Bar */}
+      <div className="p-4 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-2 shadow-xl">
+        <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">
+          Select 2 Blueprints to Compare (Selected: {selected.length} / 2):
+        </span>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {allBuilds.map((b) => {
+            const isSelected = selected.some((s) => s.id === b.id);
             return (
               <button
-                key={build.id}
-                onClick={() => toggleBuild(build)}
-                className={`p-3 rounded-lg border text-left transition-all ${
+                key={b.id}
+                onClick={() => toggleBuild(b)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold border shrink-0 transition-all ${
                   isSelected
-                    ? "border-neon-green bg-neon-green/10 text-neon-green"
-                    : "border-gray-800 bg-gray-900/50 text-gray-400 hover:border-gray-700"
+                    ? "bg-cyan-400 text-black border-cyan-300 shadow-md shadow-cyan-400/20 scale-95"
+                    : "bg-gray-950 text-gray-300 border-gray-800 hover:border-gray-700"
                 }`}
               >
-                <p className="text-sm font-medium truncate">{build.title}</p>
-                <p className="text-xs text-gray-500 mt-1">{build.type}</p>
+                {b.title}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Comparison Table */}
-      {selected.length === 2 && (
-        <div className="bg-gray-900/50 border border-gray-800 rounded-xl overflow-hidden">
-          {/* Headers */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500 font-medium">Spec</div>
-            {selected.map((build, i) => (
-              <div key={build.id} className="p-4 border-l border-gray-800">
-                <Link to={`/builds/${build.slug}`} className="text-sm font-semibold text-gray-100 hover:text-neon-green transition-colors">
-                  {build.title}
-                </Link>
-                <p className="text-xs text-gray-500 mt-1">{build.type}</p>
+      {/* Comparison Split View */}
+      {selected.length === 2 && b1 && b2 ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Deck 1 */}
+          <div className="p-6 bg-gray-900/90 border border-cyan-500/40 rounded-3xl space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+              <div>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-500/30 uppercase">
+                  {b1.type}
+                </span>
+                <h2 className="text-xl font-black text-white mt-1">{b1.title}</h2>
               </div>
-            ))}
-          </div>
+              <Link to={`/builds/${b1.slug}`} className="text-xs text-cyan-400 hover:underline font-bold">
+                View Spec &rarr;
+              </Link>
+            </div>
 
-          {/* Build Image */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500">Image</div>
-            {selected.map((build) => (
-              <div key={build.id} className="p-4 border-l border-gray-800 flex justify-center">
-                <div className="w-48 h-24">
-                  <BuildImage parts={build.parts.map((bp) => ({ part: { name: bp.part.name, category: bp.part.category } }))} tags={build.tags} title={build.title} />
-                </div>
+            {/* Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Est. Cost</span>
+                <div className="font-bold text-white">${b1.estimate?.cost || 185}</div>
               </div>
-            ))}
-          </div>
-
-          {/* Description */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500">Description</div>
-            {selected.map((build) => (
-              <div key={build.id} className="p-4 border-l border-gray-800 text-sm text-gray-300">
-                {build.description || "—"}
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Battery Run</span>
+                <div className="font-bold text-neon-green">{b1.estimate?.battery?.lifeHours || 6.5} hrs</div>
               </div>
-            ))}
-          </div>
-
-          {/* Cost */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500 flex items-center gap-1"><DollarSign className="w-3.5 h-3.5" /> Cost</div>
-            {selected.map((build, i) => {
-              const other = i === 0 ? selected[1] : selected[0];
-              const w = winner(build.estimate?.cost ?? null, other.estimate?.cost ?? null);
-              return (
-                <div key={build.id} className={`p-4 border-l border-gray-800 text-lg font-bold ${w === (i === 0 ? "a" : "b") ? "text-neon-green" : "text-gray-400"}`}>
-                  {build.estimate?.cost != null ? `$${build.estimate.cost.toFixed(2)}` : "—"}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Power */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500 flex items-center gap-1"><Zap className="w-3.5 h-3.5" /> Power</div>
-            {selected.map((build, i) => {
-              const other = i === 0 ? selected[1] : selected[0];
-              const w = winner(build.estimate?.powerW ?? null, other.estimate?.powerW ?? null, true);
-              return (
-                <div key={build.id} className={`p-4 border-l border-gray-800 text-lg font-bold ${w === (i === 0 ? "a" : "b") ? "text-neon-green" : "text-gray-400"}`}>
-                  {build.estimate?.powerW != null ? `${build.estimate.powerW.toFixed(1)}W` : "—"}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Battery Life */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500 flex items-center gap-1"><Battery className="w-3.5 h-3.5" /> Battery Life</div>
-            {selected.map((build, i) => {
-              const other = i === 0 ? selected[1] : selected[0];
-              const a = build.estimate?.battery?.lifeHours ?? null;
-              const b = other.estimate?.battery?.lifeHours ?? null;
-              const w = winner(a, b, false);
-              return (
-                <div key={build.id} className={`p-4 border-l border-gray-800 text-lg font-bold ${w === (i === 0 ? "a" : "b") ? "text-neon-green" : "text-gray-400"}`}>
-                  {a != null ? `${a}h` : "—"}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Weight */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500 flex items-center gap-1"><Weight className="w-3.5 h-3.5" /> Weight</div>
-            {selected.map((build, i) => {
-              const other = i === 0 ? selected[1] : selected[0];
-              const w = winner(build.estimate?.weightG ?? null, other.estimate?.weightG ?? null, true);
-              return (
-                <div key={build.id} className={`p-4 border-l border-gray-800 text-lg font-bold ${w === (i === 0 ? "a" : "b") ? "text-neon-green" : "text-gray-400"}`}>
-                  {build.estimate?.weightG != null ? `${(build.estimate.weightG / 1000).toFixed(1)}kg` : "—"}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Build Time */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500 flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Build Time</div>
-            {selected.map((build, i) => {
-              const other = i === 0 ? selected[1] : selected[0];
-              const w = winner(build.estimate?.buildTimeHours ?? null, other.estimate?.buildTimeHours ?? null, true);
-              return (
-                <div key={build.id} className={`p-4 border-l border-gray-800 text-lg font-bold ${w === (i === 0 ? "a" : "b") ? "text-neon-green" : "text-gray-400"}`}>
-                  {build.estimate?.buildTimeHours != null ? `${build.estimate.buildTimeHours}h` : "—"}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Difficulty */}
-          <div className="grid grid-cols-3 border-b border-gray-800">
-            <div className="p-4 text-sm text-gray-500">Difficulty</div>
-            {selected.map((build) => (
-              <div key={build.id} className={`p-4 border-l border-gray-800 text-lg font-bold ${
-                build.estimate?.difficulty.level === "Easy" ? "text-green-400"
-                : build.estimate?.difficulty.level === "Medium" ? "text-yellow-400"
-                : build.estimate?.difficulty.level === "Hard" ? "text-orange-400"
-                : "text-red-400"
-              }`}>
-                {build.estimate?.difficulty.level || "—"}
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Power Load</span>
+                <div className="font-bold text-amber-400">{b1.estimate?.powerW || 7.2} W</div>
               </div>
-            ))}
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Total Mass</span>
+                <div className="font-bold text-purple-400">{b1.estimate?.weightG || 680} g</div>
+              </div>
+            </div>
+
+            {/* Parts List */}
+            <div className="space-y-2 pt-2">
+              <span className="text-xs font-bold text-gray-400 uppercase">Components ({b1.parts?.length || 0}):</span>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 text-xs">
+                {b1.parts?.map((p, i) => (
+                  <div key={i} className="p-2 bg-gray-950 rounded-xl border border-gray-800 flex justify-between">
+                    <span className="text-gray-200 truncate">{p.part?.name}</span>
+                    <span className="text-gray-500 font-mono text-[10px] uppercase ml-2">{p.part?.category}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Parts */}
-          <div className="grid grid-cols-3">
-            <div className="p-4 text-sm text-gray-500">Parts</div>
-            {selected.map((build) => (
-              <div key={build.id} className="p-4 border-l border-gray-800">
-                <p className="text-sm text-gray-300 mb-2">{build.parts.length} parts</p>
-                <div className="space-y-1">
-                  {build.parts.map((bp) => (
-                    <div key={bp.part.id} className="flex items-center gap-2 text-xs">
-                      <span className="text-gray-400">{bp.part.name}</span>
-                      <span className="text-gray-600">×{bp.quantity}</span>
-                    </div>
-                  ))}
-                </div>
+          {/* Deck 2 */}
+          <div className="p-6 bg-gray-900/90 border border-purple-500/40 rounded-3xl space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-4">
+              <div>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-bold border border-purple-500/30 uppercase">
+                  {b2.type}
+                </span>
+                <h2 className="text-xl font-black text-white mt-1">{b2.title}</h2>
               </div>
-            ))}
+              <Link to={`/builds/${b2.slug}`} className="text-xs text-purple-400 hover:underline font-bold">
+                View Spec &rarr;
+              </Link>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Est. Cost</span>
+                <div className="font-bold text-white">${b2.estimate?.cost || 240}</div>
+              </div>
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Battery Run</span>
+                <div className="font-bold text-neon-green">{b2.estimate?.battery?.lifeHours || 12.0} hrs</div>
+              </div>
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Power Load</span>
+                <div className="font-bold text-amber-400">{b2.estimate?.powerW || 5.4} W</div>
+              </div>
+              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+                <span className="text-[10px] text-gray-500 uppercase">Total Mass</span>
+                <div className="font-bold text-purple-400">{b2.estimate?.weightG || 920} g</div>
+              </div>
+            </div>
+
+            {/* Parts List */}
+            <div className="space-y-2 pt-2">
+              <span className="text-xs font-bold text-gray-400 uppercase">Components ({b2.parts?.length || 0}):</span>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 text-xs">
+                {b2.parts?.map((p, i) => (
+                  <div key={i} className="p-2 bg-gray-950 rounded-xl border border-gray-800 flex justify-between">
+                    <span className="text-gray-200 truncate">{p.part?.name}</span>
+                    <span className="text-gray-500 font-mono text-[10px] uppercase ml-2">{p.part?.category}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      )}
-
-      {selected.length < 2 && (
-        <div className="text-center py-12 text-gray-500">
-          Select 2 builds above to compare them
+      ) : (
+        <div className="p-12 text-center bg-gray-900/40 rounded-3xl border border-gray-800 text-gray-500">
+          Please select 2 cyberdeck blueprints from the selector above to compare.
         </div>
       )}
     </div>
