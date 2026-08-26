@@ -697,6 +697,65 @@ export default function PcbViewerStudio() {
           </div>
         </div>
       </div>
+
+      {/* SMD Hot-Air & Reflow Profile Section */}
+      <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+          <div>
+            <h2 className="text-xs font-bold text-white uppercase flex items-center gap-2">
+              <Zap className="w-4 h-4 text-amber-400" />
+              SMD Solder Stencil & JEDEC J-STD-020 Reflow Thermal Profile
+            </h2>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              Reflow temperature curve for lead-free SAC305 & low-temp bismuth paste soldering
+            </p>
+          </div>
+
+          <span className="text-xs font-bold px-3 py-1 rounded-xl bg-gray-950 border border-amber-500/30 text-amber-400">
+            Liquidus: 217°C · Peak: 245°C
+          </span>
+        </div>
+
+        {/* SVG Thermal Curve */}
+        <div className="h-44 w-full bg-gray-950 rounded-2xl border border-gray-800 p-4 relative flex items-end">
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 400 120" preserveAspectRatio="none">
+            {/* Grid */}
+            <line x1="0" y1="30" x2="400" y2="30" stroke="#1e2638" strokeDasharray="3,3" />
+            <line x1="0" y1="60" x2="400" y2="60" stroke="#1e2638" strokeDasharray="3,3" />
+            <line x1="0" y1="90" x2="400" y2="90" stroke="#1e2638" strokeDasharray="3,3" />
+
+            {/* Profile Polyline */}
+            <polyline
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth="2.5"
+              points="0,110 80,75 180,65 240,15 280,25 400,110"
+            />
+
+            {/* Stage Labels */}
+            <text x="30" y="100" fill="#64748b" fontSize="9" fontWeight="bold">1. Preheat (1-3°C/s)</text>
+            <text x="110" y="60" fill="#64748b" fontSize="9" fontWeight="bold">2. Flux Soak (150-180°C)</text>
+            <text x="215" y="12" fill="#00ff66" fontSize="9" fontWeight="bold">3. Peak Reflow (245°C)</text>
+            <text x="310" y="80" fill="#00f3ff" fontSize="9" fontWeight="bold">4. Cooling</text>
+          </svg>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+          <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+            <span className="text-gray-500 uppercase font-bold text-[10px]">Alloy Standard</span>
+            <div className="text-white font-bold">SAC305 (Sn96.5/Ag3/Cu0.5)</div>
+          </div>
+          <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+            <span className="text-gray-500 uppercase font-bold text-[10px]">Stencil Thickness</span>
+            <div className="text-cyan-400 font-bold">0.12mm (5 mil) Laser Cut</div>
+          </div>
+          <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1">
+            <span className="text-gray-500 uppercase font-bold text-[10px]">Aperture Area Ratio</span>
+            <div className="text-neon-green font-bold">AR 0.72 (Pass &gt; 0.66 ✓)</div>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
