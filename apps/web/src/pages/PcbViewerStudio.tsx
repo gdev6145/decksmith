@@ -20,6 +20,8 @@ import {
   Tag,
   Radio,
   Check,
+  Activity,
+  Crosshair,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -30,6 +32,16 @@ interface PcbLayer {
   color: string;
   visible: boolean;
   opacity: number;
+}
+
+interface TraceItem {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  width: number;
+  layer: "f_cu" | "b_cu";
+  net?: string;
 }
 
 interface PcbPreset {
@@ -47,9 +59,9 @@ interface PcbPreset {
     copperWeight: string;
     surfaceFinish: string;
   };
-  traces: Array<{ x1: number; y1: number; x2: number; y2: number; width: number; layer: "f_cu" | "b_cu" }>;
-  pads: Array<{ x: number; y: number; w: number; h: number; type: "smd" | "thru" | "bga"; label?: string }>;
-  vias: Array<{ x: number; y: number; r: number }>;
+  traces: TraceItem[];
+  pads: Array<{ x: number; y: number; w: number; h: number; type: "smd" | "thru" | "bga"; label?: string; net?: string }>;
+  vias: Array<{ x: number; y: number; r: number; net?: string }>;
   silk: Array<{ text: string; x: number; y: number; size: number }>;
 }
 
@@ -71,46 +83,46 @@ const PCB_PRESETS: PcbPreset[] = [
     },
     traces: [
       // 40-pin GPIO bus traces
-      { x1: 40, y1: 40, x2: 240, y2: 40, width: 2, layer: "f_cu" },
-      { x1: 40, y1: 55, x2: 240, y2: 55, width: 2, layer: "f_cu" },
-      { x1: 40, y1: 70, x2: 200, y2: 70, width: 2, layer: "f_cu" },
-      { x1: 200, y1: 70, x2: 260, y2: 130, width: 2, layer: "f_cu" },
+      { x1: 40, y1: 40, x2: 240, y2: 40, width: 2, layer: "f_cu", net: "GPIO_BUS" },
+      { x1: 40, y1: 55, x2: 240, y2: 55, width: 2, layer: "f_cu", net: "GPIO_BUS" },
+      { x1: 40, y1: 70, x2: 200, y2: 70, width: 2, layer: "f_cu", net: "GPIO_BUS" },
+      { x1: 200, y1: 70, x2: 260, y2: 130, width: 2, layer: "f_cu", net: "GPIO_BUS" },
       // PCIe high speed differential pairs
-      { x1: 180, y1: 180, x2: 380, y2: 180, width: 3, layer: "f_cu" },
-      { x1: 180, y1: 188, x2: 380, y2: 188, width: 3, layer: "f_cu" },
-      { x1: 180, y1: 200, x2: 380, y2: 200, width: 3, layer: "b_cu" },
-      { x1: 180, y1: 208, x2: 380, y2: 208, width: 3, layer: "b_cu" },
+      { x1: 180, y1: 180, x2: 380, y2: 180, width: 3, layer: "f_cu", net: "PCIE_TX_P" },
+      { x1: 180, y1: 188, x2: 380, y2: 188, width: 3, layer: "f_cu", net: "PCIE_TX_N" },
+      { x1: 180, y1: 200, x2: 380, y2: 200, width: 3, layer: "b_cu", net: "PCIE_RX_P" },
+      { x1: 180, y1: 208, x2: 380, y2: 208, width: 3, layer: "b_cu", net: "PCIE_RX_N" },
       // USB-C Power Bus
-      { x1: 40, y1: 280, x2: 160, y2: 280, width: 6, layer: "f_cu" },
-      { x1: 160, y1: 280, x2: 220, y2: 220, width: 6, layer: "f_cu" },
+      { x1: 40, y1: 280, x2: 160, y2: 280, width: 6, layer: "f_cu", net: "VBUS_20V" },
+      { x1: 160, y1: 280, x2: 220, y2: 220, width: 6, layer: "f_cu", net: "VBUS_20V" },
       // I2S Audio Traces
-      { x1: 320, y1: 60, x2: 440, y2: 60, width: 2, layer: "b_cu" },
-      { x1: 320, y1: 75, x2: 440, y2: 75, width: 2, layer: "b_cu" },
-      { x1: 320, y1: 90, x2: 440, y2: 90, width: 2, layer: "b_cu" },
+      { x1: 320, y1: 60, x2: 440, y2: 60, width: 2, layer: "b_cu", net: "I2S_AUDIO" },
+      { x1: 320, y1: 75, x2: 440, y2: 75, width: 2, layer: "b_cu", net: "I2S_AUDIO" },
+      { x1: 320, y1: 90, x2: 440, y2: 90, width: 2, layer: "b_cu", net: "I2S_AUDIO" },
     ],
     pads: [
       // 40-pin Header dual row
-      ...Array.from({ length: 20 }).map((_, i) => ({ x: 50 + i * 10, y: 40, w: 6, h: 6, type: "thru" as const })),
-      ...Array.from({ length: 20 }).map((_, i) => ({ x: 50 + i * 10, y: 55, w: 6, h: 6, type: "thru" as const })),
+      ...Array.from({ length: 20 }).map((_, i) => ({ x: 50 + i * 10, y: 40, w: 6, h: 6, type: "thru" as const, net: "GPIO_BUS" })),
+      ...Array.from({ length: 20 }).map((_, i) => ({ x: 50 + i * 10, y: 55, w: 6, h: 6, type: "thru" as const, net: "GPIO_BUS" })),
       // Hirose DF40 CM4 Connector Footprints
       ...Array.from({ length: 25 }).map((_, i) => ({ x: 120 + i * 8, y: 140, w: 4, h: 10, type: "smd" as const })),
       ...Array.from({ length: 25 }).map((_, i) => ({ x: 120 + i * 8, y: 220, w: 4, h: 10, type: "smd" as const })),
       // M.2 NVMe Key-M Connector
-      ...Array.from({ length: 18 }).map((_, i) => ({ x: 380 + (i % 2) * 6, y: 160 + i * 6, w: 4, h: 4, type: "smd" as const })),
+      ...Array.from({ length: 18 }).map((_, i) => ({ x: 380 + (i % 2) * 6, y: 160 + i * 6, w: 4, h: 4, type: "smd" as const, net: "PCIE_TX_P" })),
       // USB-C Receptacle 16-pin SMT
-      ...Array.from({ length: 8 }).map((_, i) => ({ x: 30, y: 260 + i * 6, w: 8, h: 3, type: "smd" as const })),
+      ...Array.from({ length: 8 }).map((_, i) => ({ x: 30, y: 260 + i * 6, w: 8, h: 3, type: "smd" as const, net: "VBUS_20V" })),
       // MAX98357A I2S DAC Amp IC (QFN-16)
-      ...Array.from({ length: 4 }).map((_, i) => ({ x: 440 + i * 6, y: 50, w: 3, h: 8, type: "smd" as const })),
-      ...Array.from({ length: 4 }).map((_, i) => ({ x: 440 + i * 6, y: 80, w: 3, h: 8, type: "smd" as const })),
+      ...Array.from({ length: 4 }).map((_, i) => ({ x: 440 + i * 6, y: 50, w: 3, h: 8, type: "smd" as const, net: "I2S_AUDIO" })),
+      ...Array.from({ length: 4 }).map((_, i) => ({ x: 440 + i * 6, y: 80, w: 3, h: 8, type: "smd" as const, net: "I2S_AUDIO" })),
     ],
     vias: [
-      { x: 160, y: 70, r: 3 },
-      { x: 260, y: 130, r: 3 },
-      { x: 320, y: 60, r: 3 },
-      { x: 320, y: 75, r: 3 },
-      { x: 320, y: 90, r: 3 },
-      { x: 160, y: 280, r: 4 },
-      { x: 220, y: 220, r: 4 },
+      { x: 160, y: 70, r: 3, net: "GPIO_BUS" },
+      { x: 260, y: 130, r: 3, net: "GPIO_BUS" },
+      { x: 320, y: 60, r: 3, net: "I2S_AUDIO" },
+      { x: 320, y: 75, r: 3, net: "I2S_AUDIO" },
+      { x: 320, y: 90, r: 3, net: "I2S_AUDIO" },
+      { x: 160, y: 280, r: 4, net: "VBUS_20V" },
+      { x: 220, y: 220, r: 4, net: "VBUS_20V" },
       // Mounting holes
       { x: 30, y: 30, r: 8 },
       { x: 480, y: 30, r: 8 },
@@ -142,19 +154,18 @@ const PCB_PRESETS: PcbPreset[] = [
     },
     traces: [
       // Key switch matrix rows
-      { x1: 50, y1: 80, x2: 440, y2: 80, width: 2.5, layer: "f_cu" },
-      { x1: 50, y1: 140, x2: 440, y2: 140, width: 2.5, layer: "f_cu" },
-      { x1: 50, y1: 200, x2: 440, y2: 200, width: 2.5, layer: "f_cu" },
-      { x1: 50, y1: 260, x2: 380, y2: 260, width: 2.5, layer: "f_cu" },
+      { x1: 50, y1: 80, x2: 440, y2: 80, width: 2.5, layer: "f_cu", net: "ROW_BUS" },
+      { x1: 50, y1: 140, x2: 440, y2: 140, width: 2.5, layer: "f_cu", net: "ROW_BUS" },
+      { x1: 50, y1: 200, x2: 440, y2: 200, width: 2.5, layer: "f_cu", net: "ROW_BUS" },
+      { x1: 50, y1: 260, x2: 380, y2: 260, width: 2.5, layer: "f_cu", net: "ROW_BUS" },
       // Key switch matrix cols
-      { x1: 80, y1: 60, x2: 80, y2: 280, width: 2.5, layer: "b_cu" },
-      { x1: 150, y1: 60, x2: 150, y2: 280, width: 2.5, layer: "b_cu" },
-      { x1: 220, y1: 60, x2: 220, y2: 280, width: 2.5, layer: "b_cu" },
-      { x1: 290, y1: 60, x2: 290, y2: 280, width: 2.5, layer: "b_cu" },
-      { x1: 360, y1: 60, x2: 360, y2: 280, width: 2.5, layer: "b_cu" },
+      { x1: 80, y1: 60, x2: 80, y2: 280, width: 2.5, layer: "b_cu", net: "COL_BUS" },
+      { x1: 150, y1: 60, x2: 150, y2: 280, width: 2.5, layer: "b_cu", net: "COL_BUS" },
+      { x1: 220, y1: 60, x2: 220, y2: 280, width: 2.5, layer: "b_cu", net: "COL_BUS" },
+      { x1: 290, y1: 60, x2: 290, y2: 280, width: 2.5, layer: "b_cu", net: "COL_BUS" },
+      { x1: 360, y1: 60, x2: 360, y2: 280, width: 2.5, layer: "b_cu", net: "COL_BUS" },
     ],
     pads: [
-      // 5x6 Key Matrix Kailh Hot Swap Sockets
       ...[80, 150, 220, 290, 360].flatMap((colX) =>
         [80, 140, 200, 260].map((rowY) => ({
           x: colX,
@@ -162,19 +173,18 @@ const PCB_PRESETS: PcbPreset[] = [
           w: 12,
           h: 12,
           type: "smd" as const,
+          net: "ROW_BUS",
         }))
       ),
-      // Pro Micro / RP2040 Controller Header (2x12)
       ...Array.from({ length: 12 }).map((_, i) => ({ x: 420, y: 70 + i * 14, w: 6, h: 6, type: "thru" as const })),
       ...Array.from({ length: 12 }).map((_, i) => ({ x: 450, y: 70 + i * 14, w: 6, h: 6, type: "thru" as const })),
-      // TRRS 4-pin Jack
       ...Array.from({ length: 4 }).map((_, i) => ({ x: 470, y: 260 + i * 12, w: 7, h: 7, type: "thru" as const })),
     ],
     vias: [
-      { x: 80, y: 80, r: 3 },
-      { x: 150, y: 140, r: 3 },
-      { x: 220, y: 200, r: 3 },
-      { x: 290, y: 260, r: 3 },
+      { x: 80, y: 80, r: 3, net: "ROW_BUS" },
+      { x: 150, y: 140, r: 3, net: "ROW_BUS" },
+      { x: 220, y: 200, r: 3, net: "ROW_BUS" },
+      { x: 290, y: 260, r: 3, net: "ROW_BUS" },
       { x: 30, y: 30, r: 6 },
       { x: 480, y: 30, r: 6 },
       { x: 30, y: 300, r: 6 },
@@ -201,30 +211,23 @@ const PCB_PRESETS: PcbPreset[] = [
       surfaceFinish: "ENIG Gold",
     },
     traces: [
-      // 50-ohm RF microstrip to SMA
-      { x1: 300, y1: 170, x2: 450, y2: 170, width: 8, layer: "f_cu" },
-      // Solar Power Bus
-      { x1: 50, y1: 80, x2: 200, y2: 80, width: 7, layer: "f_cu" },
-      { x1: 200, y1: 80, x2: 200, y2: 240, width: 7, layer: "f_cu" },
-      // SPI Bus to LoRa
-      { x1: 80, y1: 140, x2: 240, y2: 140, width: 2, layer: "b_cu" },
-      { x1: 80, y1: 155, x2: 240, y2: 155, width: 2, layer: "b_cu" },
-      { x1: 80, y1: 170, x2: 240, y2: 170, width: 2, layer: "b_cu" },
+      { x1: 300, y1: 170, x2: 450, y2: 170, width: 8, layer: "f_cu", net: "RF_50_OHM" },
+      { x1: 50, y1: 80, x2: 200, y2: 80, width: 7, layer: "f_cu", net: "SOLAR_VBUS" },
+      { x1: 200, y1: 80, x2: 200, y2: 240, width: 7, layer: "f_cu", net: "SOLAR_VBUS" },
+      { x1: 80, y1: 140, x2: 240, y2: 140, width: 2, layer: "b_cu", net: "SPI_LORA" },
+      { x1: 80, y1: 155, x2: 240, y2: 155, width: 2, layer: "b_cu", net: "SPI_LORA" },
+      { x1: 80, y1: 170, x2: 240, y2: 170, width: 2, layer: "b_cu", net: "SPI_LORA" },
     ],
     pads: [
-      // SX1262 QFN-24
-      ...Array.from({ length: 6 }).map((_, i) => ({ x: 250 + i * 5, y: 150, w: 3, h: 7, type: "smd" as const })),
-      ...Array.from({ length: 6 }).map((_, i) => ({ x: 250 + i * 5, y: 185, w: 3, h: 7, type: "smd" as const })),
-      // SMA Edge Launch Connector Pads
-      { x: 460, y: 170, w: 16, h: 8, type: "smd" as const },
+      ...Array.from({ length: 6 }).map((_, i) => ({ x: 250 + i * 5, y: 150, w: 3, h: 7, type: "smd" as const, net: "SPI_LORA" })),
+      ...Array.from({ length: 6 }).map((_, i) => ({ x: 250 + i * 5, y: 185, w: 3, h: 7, type: "smd" as const, net: "RF_50_OHM" })),
+      { x: 460, y: 170, w: 16, h: 8, type: "smd" as const, net: "RF_50_OHM" },
       { x: 460, y: 150, w: 16, h: 8, type: "smd" as const },
       { x: 460, y: 190, w: 16, h: 8, type: "smd" as const },
-      // JST Solar & Battery Input
-      { x: 50, y: 80, w: 8, h: 8, type: "thru" as const },
-      { x: 50, y: 95, w: 8, h: 8, type: "thru" as const },
+      { x: 50, y: 80, w: 8, h: 8, type: "thru" as const, net: "SOLAR_VBUS" },
+      { x: 50, y: 95, w: 8, h: 8, type: "thru" as const, net: "SOLAR_VBUS" },
     ],
     vias: [
-      // RF via stitching ground fence
       ...Array.from({ length: 12 }).map((_, i) => ({ x: 320 + i * 10, y: 150, r: 2.5 })),
       ...Array.from({ length: 12 }).map((_, i) => ({ x: 320 + i * 10, y: 190, r: 2.5 })),
       { x: 30, y: 30, r: 7 },
@@ -255,6 +258,7 @@ export default function PcbViewerStudio() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [maskTheme, setMaskTheme] = useState<string>("matte-black");
+  const [highlightedNet, setHighlightedNet] = useState<string | null>(null);
 
   const [layers, setLayers] = useState<PcbLayer[]>([
     { id: "f_cu", name: "Top Copper (F.Cu)", extension: ".gtl", color: "#e63946", visible: true, opacity: 0.9 },
@@ -268,6 +272,10 @@ export default function PcbViewerStudio() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activePreset = PCB_PRESETS.find((p) => p.id === selectedPresetId) || PCB_PRESETS[0];
 
+  const availableNets = Array.from(
+    new Set(activePreset.traces.map((t) => t.net).filter(Boolean))
+  ) as string[];
+
   const toggleLayerVisibility = (id: string) => {
     soundFx.playClick();
     setLayers((prev) => prev.map((l) => (l.id === id ? { ...l, visible: !l.visible } : l)));
@@ -280,7 +288,6 @@ export default function PcbViewerStudio() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // High DPI scaling
     const dpr = window.devicePixelRatio || 1;
     const width = canvas.parentElement?.clientWidth || 700;
     const height = 480;
@@ -288,17 +295,14 @@ export default function PcbViewerStudio() {
     canvas.height = height * dpr;
     ctx.scale(dpr, dpr);
 
-    // Background Canvas
     ctx.fillStyle = "#07090e";
     ctx.fillRect(0, 0, width, height);
 
-    // Canvas Transformation Matrix (Pan & Zoom)
     ctx.save();
     ctx.translate(width / 2 + panOffset.x, height / 2 + panOffset.y);
     const scale = zoom / 100;
     ctx.scale(scale, scale);
 
-    // Center PCB Board (520px x 340px virtual canvas size)
     const bx = -260;
     const by = -170;
     const bw = 520;
@@ -306,7 +310,7 @@ export default function PcbViewerStudio() {
 
     const themeObj = SOLDER_MASK_THEMES.find((t) => t.id === maskTheme) || SOLDER_MASK_THEMES[0];
 
-    // 1. Draw Solder Mask Substrate & Board Enclosure
+    // 1. Draw Solder Mask Substrate
     ctx.fillStyle = themeObj.bg;
     ctx.strokeStyle = themeObj.boardBorder;
     ctx.lineWidth = 4;
@@ -318,12 +322,14 @@ export default function PcbViewerStudio() {
     // 2. Draw Bottom Copper Layer (B.Cu)
     const bCuLayer = layers.find((l) => l.id === "b_cu");
     if (bCuLayer?.visible) {
-      ctx.strokeStyle = bCuLayer.color;
-      ctx.globalAlpha = bCuLayer.opacity;
       activePreset.traces
         .filter((t) => t.layer === "b_cu")
         .forEach((t) => {
-          ctx.lineWidth = t.width;
+          const isNetMatch = highlightedNet && t.net === highlightedNet;
+          ctx.strokeStyle = isNetMatch ? "#00ff66" : bCuLayer.color;
+          ctx.lineWidth = isNetMatch ? t.width + 3 : t.width;
+          ctx.globalAlpha = isNetMatch ? 1.0 : bCuLayer.opacity;
+
           ctx.beginPath();
           ctx.moveTo(bx + t.x1, by + t.y1);
           ctx.lineTo(bx + t.x2, by + t.y2);
@@ -335,12 +341,14 @@ export default function PcbViewerStudio() {
     // 3. Draw Top Copper Layer (F.Cu)
     const fCuLayer = layers.find((l) => l.id === "f_cu");
     if (fCuLayer?.visible) {
-      ctx.strokeStyle = fCuLayer.color;
-      ctx.globalAlpha = fCuLayer.opacity;
       activePreset.traces
         .filter((t) => t.layer === "f_cu")
         .forEach((t) => {
-          ctx.lineWidth = t.width;
+          const isNetMatch = highlightedNet && t.net === highlightedNet;
+          ctx.strokeStyle = isNetMatch ? "#00ff66" : fCuLayer.color;
+          ctx.lineWidth = isNetMatch ? t.width + 3 : t.width;
+          ctx.globalAlpha = isNetMatch ? 1.0 : fCuLayer.opacity;
+
           ctx.beginPath();
           ctx.moveTo(bx + t.x1, by + t.y1);
           ctx.lineTo(bx + t.x2, by + t.y2);
@@ -352,15 +360,17 @@ export default function PcbViewerStudio() {
     // 4. Draw SMD & Component Pads
     const padsLayer = layers.find((l) => l.id === "pads");
     if (padsLayer?.visible) {
-      ctx.fillStyle = padsLayer.color;
-      ctx.globalAlpha = padsLayer.opacity;
       activePreset.pads.forEach((p) => {
+        const isNetMatch = highlightedNet && p.net === highlightedNet;
+        ctx.fillStyle = isNetMatch ? "#00ff66" : padsLayer.color;
+        ctx.globalAlpha = padsLayer.opacity;
+
         if (p.type === "thru") {
           ctx.beginPath();
-          ctx.arc(bx + p.x, by + p.y, p.w / 2, 0, Math.PI * 2);
+          ctx.arc(bx + p.x, by + p.y, (p.w / 2) * (isNetMatch ? 1.4 : 1.0), 0, Math.PI * 2);
           ctx.fill();
         } else {
-          ctx.fillRect(bx + p.x - p.w / 2, by + p.y - p.h / 2, p.w, p.h);
+          ctx.fillRect(bx + p.x - p.w / 2, by + p.y - p.h / 2, p.w * (isNetMatch ? 1.3 : 1.0), p.h * (isNetMatch ? 1.3 : 1.0));
         }
       });
       ctx.globalAlpha = 1.0;
@@ -370,13 +380,12 @@ export default function PcbViewerStudio() {
     const drillsLayer = layers.find((l) => l.id === "drills");
     if (drillsLayer?.visible) {
       activePreset.vias.forEach((v) => {
-        // Gold Plated Annular Ring
-        ctx.fillStyle = drillsLayer.color;
+        const isNetMatch = highlightedNet && v.net === highlightedNet;
+        ctx.fillStyle = isNetMatch ? "#00ff66" : drillsLayer.color;
         ctx.beginPath();
-        ctx.arc(bx + v.x, by + v.y, v.r, 0, Math.PI * 2);
+        ctx.arc(bx + v.x, by + v.y, v.r * (isNetMatch ? 1.4 : 1.0), 0, Math.PI * 2);
         ctx.fill();
 
-        // Inner Drill Hole (Black)
         ctx.fillStyle = "#07090e";
         ctx.beginPath();
         ctx.arc(bx + v.x, by + v.y, v.r * 0.5, 0, Math.PI * 2);
@@ -389,7 +398,6 @@ export default function PcbViewerStudio() {
     if (silkLayer?.visible) {
       ctx.fillStyle = silkLayer.color;
       ctx.globalAlpha = silkLayer.opacity;
-      ctx.font = "bold 10px monospace";
       activePreset.silk.forEach((s) => {
         ctx.font = `bold ${s.size}px monospace`;
         ctx.fillText(s.text, bx + s.x, by + s.y);
@@ -410,9 +418,8 @@ export default function PcbViewerStudio() {
     }
 
     ctx.restore();
-  }, [selectedPresetId, zoom, panOffset, layers, maskTheme]);
+  }, [selectedPresetId, zoom, panOffset, layers, maskTheme, highlightedNet]);
 
-  // Mouse pan drag events
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
@@ -488,6 +495,7 @@ export default function PcbViewerStudio() {
             onClick={() => {
               soundFx.playClick();
               setSelectedPresetId(preset.id);
+              setHighlightedNet(null);
             }}
             className={`p-4 rounded-2xl border text-left transition-all flex flex-col justify-between ${
               selectedPresetId === preset.id
@@ -579,6 +587,43 @@ export default function PcbViewerStudio() {
               </div>
             </div>
           </div>
+
+          {/* Interactive Netlist Trace Highlighting Bar */}
+          {availableNets.length > 0 && (
+            <div className="p-3 bg-gray-900/90 border border-gray-800 rounded-2xl flex items-center gap-2 overflow-x-auto text-xs shadow-lg">
+              <span className="text-[10px] text-gray-400 font-bold uppercase shrink-0 flex items-center gap-1">
+                <Crosshair className="w-3.5 h-3.5 text-neon-green" />
+                Highlight Copper Net:
+              </span>
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  setHighlightedNet(null);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all shrink-0 ${
+                  highlightedNet === null ? "bg-gray-800 text-white" : "text-gray-500 hover:text-white"
+                }`}
+              >
+                All Nets
+              </button>
+              {availableNets.map((net) => (
+                <button
+                  key={net}
+                  onClick={() => {
+                    soundFx.playConfirm();
+                    setHighlightedNet(net);
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase transition-all shrink-0 ${
+                    highlightedNet === net
+                      ? "bg-neon-green text-black shadow-sm"
+                      : "bg-gray-950 border border-gray-800 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  ⚡ {net}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Layer Stack & DRC Inspector (4 Cols) */}

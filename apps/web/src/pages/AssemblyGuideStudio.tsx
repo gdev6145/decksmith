@@ -24,6 +24,10 @@ import {
   Zap,
   Check,
   Hammer,
+  Play,
+  Pause,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -98,25 +102,25 @@ const ASSEMBLY_STEPS: AssemblyStep[] = [
     tools: ["Curved Tweezers", "Anti-Static Wrist Strap", "FPC Cable Bender"],
     fasteners: ["2x Adhesive Zip Tie Anchors", "Kapton Wire Tape"],
     torque: "Hand seated & ZIF latch locked",
-    cautions: ["Handle FPC ribbon cables by blue reinforcement tabs only; never crease", "Do not power on while antenna pigtail is disconnected (SDR/LoRa safety)"],
+    cautions: ["Do not crease FPC ribbon cables beyond 90-degree radius", "Ensure antenna coaxial cable avoids high-current 5V power leads"],
     specs: {
-      "Display Interface": "0.5mm pitch 40-Pin FPC Flat Ribbon",
-      "USB Loom": "4-Pin JST-PH 2.0mm",
-      "RF Pigtail": "RG178 50Ω IPEX to SMA Female",
+      "HDMI Cable": "Ultra-flexible 0.2mm FPC Ribbon",
+      "Antenna Lead": "RG178 50Ω Coaxial (15cm)",
+      "I2C Bus Wire": "28 AWG Silicone Stranded",
     },
   },
   {
     step: 5,
-    title: "CNC Top Deck Faceplate",
-    subtitle: "Anodized Aluminum / Laser-Cut Acrylic Panel",
+    title: "Laser-Cut Top Deck Faceplate",
+    subtitle: "3.0mm Matte Black Acrylic / 6061-T6 Aluminum",
     layerIndex: 4,
-    description: "Lower the precision CNC-machined 2.5mm anodized aluminum top deck plate over the lower tray assembly. Seat the IP67 waterproof rocker power switch and USB-C bulkhead charging pass-through jack.",
-    tools: ["Hex Driver 2.5mm", "Spanner Wrench for SMA Nut"],
-    fasteners: ["6x M3x10mm Countersunk Hex Screws"],
-    torque: "0.8 N·m (Cross-pattern tightening)",
-    cautions: ["Tighten screws in diagonal X-pattern to ensure even compression", "Check that no internal wiring is pinched between plate and case lip"],
+    description: "Position the laser-cut or CNC-milled top deck panel over the internal sub-chassis. Align the display cutout, keyboard bezel wells, and toggle switch ports with the sub-chassis mounting pillars.",
+    tools: ["Hex Driver 2.5mm", "Microfiber Cloth"],
+    fasteners: ["6x M3x8mm Countersunk Hex Screws"],
+    torque: "0.5 N·m (Even diagonal sequence)",
+    cautions: ["Tighten screws in a criss-cross star pattern to prevent panel bowing", "Check that no internal wiring is pinched between plates"],
     specs: {
-      "Material": "6061-T6 Aluminum / 3mm Matte Acrylic",
+      "Material": "6061-T6 Aluminum / Cast Acrylic",
       "Finish": "Hard Anodized Matte Black",
       "Panel Thickness": "2.5mm ±0.1mm",
     },
@@ -162,11 +166,43 @@ export default function AssemblyGuideStudio() {
   const [viewMode, setViewMode] = useState<"solid" | "xray" | "wireframe">("solid");
   const [isRotating, setIsRotating] = useState<boolean>(true);
   const [highlightedLayer, setHighlightedLayer] = useState<number | null>(null);
+  const [isAutoAssembling, setIsAutoAssembling] = useState<boolean>(false);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const layerGroupsRef = useRef<THREE.Group[]>([]);
+
+  // Auto-assembly animation timer
+  useEffect(() => {
+    let interval: any = null;
+    if (isAutoAssembling) {
+      interval = setInterval(() => {
+        setExplosionRatio((prev) => {
+          if (prev <= 2) {
+            setIsAutoAssembling(false);
+            soundFx.playConfirm();
+            return 0;
+          }
+          return Math.max(0, prev - 2);
+        });
+      }, 40);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isAutoAssembling]);
+
+  const toggleStepCompleted = (stepNum: number) => {
+    soundFx.playClick();
+    setCompletedSteps((prev) => {
+      const next = new Set(prev);
+      if (next.has(stepNum)) next.delete(stepNum);
+      else next.add(stepNum);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -189,154 +225,114 @@ export default function AssemblyGuideStudio() {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
+    mountRef.current.innerHTML = "";
+    mountRef.current.appendChild(renderer.domElement);
+
     // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0x00ff66, 1.8);
-    dirLight1.position.set(10, 20, 10);
+    const dirLight1 = new THREE.DirectionalLight(0x00ff66, 1.6);
+    dirLight1.position.set(20, 30, 20);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0x00d8ff, 1.4);
-    dirLight2.position.set(-10, -10, -10);
+    const dirLight2 = new THREE.DirectionalLight(0x00f3ff, 1.2);
+    dirLight2.position.set(-20, -10, -20);
     scene.add(dirLight2);
 
-    const dirLight3 = new THREE.DirectionalLight(0xff0077, 0.8);
-    dirLight3.position.set(0, 15, -15);
-    scene.add(dirLight3);
-
     // Grid Floor
-    const gridHelper = new THREE.GridHelper(30, 30, 0x00ff66, 0x1f293d);
-    gridHelper.position.y = -6;
-    scene.add(gridHelper);
+    const grid = new THREE.GridHelper(30, 30, 0x00f3ff, 0x1e2638);
+    grid.position.y = -6;
+    scene.add(grid);
 
-    // 7 Mechanical Cyberdeck Assembly Layers
+    // Build 7 Discrete Mechanical Stacking Layers
     const groups: THREE.Group[] = [];
 
-    // Layer 0: Rugged Pelican 1150 Base Shell
+    // Layer 0: Copolymer Chassis Enclosure
     const g0 = new THREE.Group();
-    const shellGeo = new THREE.BoxGeometry(10, 1.8, 7.5);
-    const shellMat = new THREE.MeshStandardMaterial({
-      color: 0x111622,
-      roughness: 0.4,
-      metalness: 0.3,
-    });
-    const shellMesh = new THREE.Mesh(shellGeo, shellMat);
-    g0.add(shellMesh);
-    // Reinforcement ribs
-    for (let r = -3.5; r <= 3.5; r += 1.75) {
-      const ribGeo = new THREE.BoxGeometry(0.3, 0.4, 7.6);
-      const ribMesh = new THREE.Mesh(ribGeo, new THREE.MeshStandardMaterial({ color: 0x1e2638 }));
-      ribMesh.position.set(r, -0.9, 0);
-      g0.add(ribMesh);
-    }
-    g0.userData = { baseY: -3.0, layerId: 0, name: "Chassis Shell & Heat-Sets" };
+    const caseGeo = new THREE.BoxGeometry(10, 2.5, 8);
+    const caseMat = new THREE.MeshStandardMaterial({ color: 0x181e29, roughness: 0.8, metalness: 0.2 });
+    const caseMesh = new THREE.Mesh(caseGeo, caseMat);
+    g0.add(caseMesh);
+    g0.userData = { baseY: -3.5, layerId: 0, name: "Chassis Base Enclosure" };
     scene.add(g0);
     groups.push(g0);
 
-    // Layer 1: Battery Tray & Buck Converter
+    // Layer 1: Battery Tray & 18650 LiFePO4 Pack
     const g1 = new THREE.Group();
-    const battTrayGeo = new THREE.BoxGeometry(8.5, 0.6, 6.0);
-    const battTrayMat = new THREE.MeshStandardMaterial({ color: 0x182030, roughness: 0.5 });
-    const battTrayMesh = new THREE.Mesh(battTrayGeo, battTrayMat);
-    g1.add(battTrayMesh);
-    // 3x 18650 Cylinders
-    for (let b = -1.8; b <= 1.8; b += 1.8) {
-      const cylGeo = new THREE.CylinderGeometry(0.5, 0.5, 4.5, 16);
-      cylGeo.rotateZ(Math.PI / 2);
-      const cylMesh = new THREE.Mesh(cylGeo, new THREE.MeshStandardMaterial({ color: 0x00ff66, metalness: 0.6, roughness: 0.2 }));
-      cylMesh.position.set(0, 0.4, b);
-      g1.add(cylMesh);
+    const batTrayGeo = new THREE.BoxGeometry(8, 0.6, 6);
+    const batTrayMat = new THREE.MeshStandardMaterial({ color: 0x222d3d });
+    const batTray = new THREE.Mesh(batTrayGeo, batTrayMat);
+    g1.add(batTray);
+    for (let i = 0; i < 3; i++) {
+      const cellGeo = new THREE.CylinderGeometry(0.5, 0.5, 3.2, 16);
+      const cellMat = new THREE.MeshStandardMaterial({ color: 0x00cc44, metalness: 0.6 });
+      const cell = new THREE.Mesh(cellGeo, cellMat);
+      cell.rotation.z = Math.PI / 2;
+      cell.position.set(-1.8 + i * 1.8, 0.4, 0);
+      g1.add(cell);
     }
-    // Buck Converter Module
-    const buckGeo = new THREE.BoxGeometry(2.0, 0.5, 1.8);
-    const buckMesh = new THREE.Mesh(buckGeo, new THREE.MeshStandardMaterial({ color: 0x003366, metalness: 0.8 }));
-    buckMesh.position.set(2.8, 0.4, 0);
-    g1.add(buckMesh);
-    g1.userData = { baseY: -1.8, layerId: 1, name: "Battery Tray & Buck Converter" };
+    g1.userData = { baseY: -2.2, layerId: 1, name: "Battery Tray & Power Module" };
     scene.add(g1);
     groups.push(g1);
 
-    // Layer 2: SBC Mainboard & Hex Standoffs
+    // Layer 2: Mainboard PCB & Active Cooler
     const g2 = new THREE.Group();
-    const sbcGeo = new THREE.BoxGeometry(6.5, 0.2, 4.5);
-    const sbcMat = new THREE.MeshStandardMaterial({ color: 0x0f5132, roughness: 0.3, metalness: 0.5 });
+    const sbcGeo = new THREE.BoxGeometry(5.8, 0.2, 4.9);
+    const sbcMat = new THREE.MeshStandardMaterial({ color: 0x064e3b, roughness: 0.3 });
     const sbcMesh = new THREE.Mesh(sbcGeo, sbcMat);
     g2.add(sbcMesh);
-    // SoC chip
-    const socGeo = new THREE.BoxGeometry(1.6, 0.2, 1.6);
-    const socMesh = new THREE.Mesh(socGeo, new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.9, roughness: 0.1 }));
-    socMesh.position.set(-0.8, 0.2, 0);
-    g2.add(socMesh);
-    // 40-Pin GPIO Header
-    const gpioGeo = new THREE.BoxGeometry(4.2, 0.4, 0.5);
-    const gpioMesh = new THREE.Mesh(gpioGeo, new THREE.MeshStandardMaterial({ color: 0x222222 }));
-    gpioMesh.position.set(0, 0.3, -1.8);
-    g2.add(gpioMesh);
-    // 4 Standoffs
-    const standoffCoords = [[-3, -2], [3, -2], [-3, 2], [3, 2]];
-    standoffCoords.forEach(([sx, sz]) => {
-      const stGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.8, 8);
-      const stMesh = new THREE.Mesh(stGeo, new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.9 }));
-      stMesh.position.set(sx, -0.4, sz);
-      g2.add(stMesh);
-    });
-    g2.userData = { baseY: -0.6, layerId: 2, name: "SBC Mainboard & Standoffs" };
+    const coolerGeo = new THREE.BoxGeometry(2.4, 0.5, 2.4);
+    const coolerMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 });
+    const cooler = new THREE.Mesh(coolerGeo, coolerMat);
+    cooler.position.set(0, 0.35, 0);
+    g2.add(cooler);
+    g2.userData = { baseY: -0.9, layerId: 2, name: "SBC Mainboard & Cooler" };
     scene.add(g2);
     groups.push(g2);
 
-    // Layer 3: FPC Ribbon Cables & LoRa Pigtails
+    // Layer 3: Cable Loom, FPC Ribbon & Antenna Routing
     const g3 = new THREE.Group();
-    const ribbonGeo = new THREE.BoxGeometry(5.0, 0.05, 3.2);
-    const ribbonMat = new THREE.MeshStandardMaterial({ color: 0xc97a14, metalness: 0.3, roughness: 0.6 });
-    const ribbonMesh = new THREE.Mesh(ribbonGeo, ribbonMat);
-    g3.add(ribbonMesh);
-    // Antenna Coax Pigtail
-    const coaxGeo = new THREE.TorusGeometry(1.5, 0.08, 8, 24, Math.PI);
-    coaxGeo.rotateX(Math.PI / 2);
-    const coaxMesh = new THREE.Mesh(coaxGeo, new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8 }));
-    coaxMesh.position.set(2.5, 0.1, 0);
-    g3.add(coaxMesh);
-    g3.userData = { baseY: 0.4, layerId: 3, name: "Internal Wiring & Ribbons" };
+    const loomCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-2, 0, -1.5),
+      new THREE.Vector3(0, 0.4, 0),
+      new THREE.Vector3(2, 0, 1.5),
+    ]);
+    const loomGeo = new THREE.TubeGeometry(loomCurve, 20, 0.12, 8, false);
+    const loomMat = new THREE.MeshStandardMaterial({ color: 0xffaa00 });
+    const loomMesh = new THREE.Mesh(loomGeo, loomMat);
+    g3.add(loomMesh);
+    g3.userData = { baseY: 0.3, layerId: 3, name: "Internal Wiring Loom & Antennas" };
     scene.add(g3);
     groups.push(g3);
 
-    // Layer 4: CNC Anodized Aluminum Top Deck Plate
+    // Layer 4: Laser-Cut Top Faceplate
     const g4 = new THREE.Group();
-    const plateGeo = new THREE.BoxGeometry(9.6, 0.25, 7.2);
-    const plateMat = new THREE.MeshStandardMaterial({ color: 0x1f2430, metalness: 0.85, roughness: 0.2 });
+    const plateGeo = new THREE.BoxGeometry(9.6, 0.3, 7.6);
+    const plateMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.2 });
     const plateMesh = new THREE.Mesh(plateGeo, plateMat);
     g4.add(plateMesh);
-    // Screen Cutout Bezel Edge
-    const bezelCutGeo = new THREE.BoxGeometry(7.6, 0.28, 2.6);
-    const bezelCutMesh = new THREE.Mesh(bezelCutGeo, new THREE.MeshStandardMaterial({ color: 0x00d8ff, wireframe: true }));
-    bezelCutMesh.position.set(0, 0.02, -1.8);
-    g4.add(bezelCutMesh);
-    g4.userData = { baseY: 1.4, layerId: 4, name: "CNC Aluminum Top Deck Plate" };
+    g4.userData = { baseY: 1.4, layerId: 4, name: "Top Deck Faceplate" };
     scene.add(g4);
     groups.push(g4);
 
-    // Layer 5: Ultrawide Bar LCD & Sofle v2 Split Keyboard
+    // Layer 5: Ultrawide Bar Display & Split Keyboard
     const g5 = new THREE.Group();
-    // 11.9" Bar LCD Glass
-    const screenGeo = new THREE.BoxGeometry(7.4, 0.2, 2.4);
-    const screenMat = new THREE.MeshStandardMaterial({ color: 0x001122, metalness: 0.9, roughness: 0.05 });
-    const screenMesh = new THREE.Mesh(screenGeo, screenMat);
-    screenMesh.position.set(0, 0.1, -1.8);
-    g5.add(screenMesh);
-    // Split Keyboard Halves
-    for (const kx of [-2.2, 2.2]) {
-      const kbGeo = new THREE.BoxGeometry(3.6, 0.35, 3.2);
-      const kbMesh = new THREE.Mesh(kbGeo, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.7 }));
-      kbMesh.position.set(kx, 0.18, 1.2);
+    const lcdGeo = new THREE.BoxGeometry(8.2, 0.15, 2.2);
+    const lcdMat = new THREE.MeshStandardMaterial({ color: 0x00f3ff, roughness: 0.1, metalness: 0.9 });
+    const lcdMesh = new THREE.Mesh(lcdGeo, lcdMat);
+    lcdMesh.position.set(0, 0.2, -2.2);
+    g5.add(lcdMesh);
+    for (const kx of [-2.4, 2.4]) {
+      const kbGeo = new THREE.BoxGeometry(3.6, 0.2, 3.2);
+      const kbMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+      const kbMesh = new THREE.Mesh(kbGeo, kbMat);
+      kbMesh.position.set(kx, 0.2, 1.2);
       g5.add(kbMesh);
-      // Keycaps Matrix dots
       for (let r = -1.2; r <= 1.2; r += 0.6) {
-        for (let c = -1.2; c <= 1.2; c += 0.6) {
+        for (let c = -1.0; c <= 1.0; c += 0.5) {
           const capGeo = new THREE.BoxGeometry(0.45, 0.2, 0.45);
           const capMesh = new THREE.Mesh(capGeo, new THREE.MeshStandardMaterial({ color: 0x00ff66 }));
           capMesh.position.set(kx + r, 0.4, 1.2 + c);
@@ -418,34 +414,41 @@ export default function AssemblyGuideStudio() {
       g.position.y = baseY * factor;
 
       // Apply highlighting
+      const isTarget = highlightedLayer === null || highlightedLayer === g.userData.layerId;
+      g.visible = isTarget;
+    });
+  }, [explosionRatio, highlightedLayer]);
+
+  // Update Material Shading Mode
+  useEffect(() => {
+    layerGroupsRef.current.forEach((g) => {
       g.traverse((child) => {
         if (child instanceof THREE.Mesh && child.material) {
-          if (highlightedLayer !== null) {
-            if (g.userData.layerId === highlightedLayer) {
-              child.material.emissive = new THREE.Color(0x00ff66);
-              child.material.emissiveIntensity = 0.5;
-            } else {
-              child.material.emissive = new THREE.Color(0x000000);
-              child.material.opacity = 0.25;
-              child.material.transparent = true;
-            }
+          const mat = child.material as THREE.MeshStandardMaterial;
+          if (viewMode === "wireframe") {
+            mat.wireframe = true;
+            mat.transparent = false;
+            mat.opacity = 1.0;
+          } else if (viewMode === "xray") {
+            mat.wireframe = false;
+            mat.transparent = true;
+            mat.opacity = 0.35;
           } else {
-            child.material.emissive = new THREE.Color(0x000000);
-            child.material.transparent = viewMode === "xray";
-            child.material.opacity = viewMode === "xray" ? 0.45 : 1.0;
-            child.material.wireframe = viewMode === "wireframe";
+            mat.wireframe = false;
+            mat.transparent = false;
+            mat.opacity = 1.0;
           }
         }
       });
     });
-  }, [explosionRatio, highlightedLayer, viewMode]);
+  }, [viewMode]);
 
-  const currentStepData = ASSEMBLY_STEPS[activeStep - 1] || ASSEMBLY_STEPS[0];
+  const currentStepData = ASSEMBLY_STEPS[activeStep - 1];
 
   const handleNextStep = () => {
     soundFx.playClick();
     if (activeStep < ASSEMBLY_STEPS.length) {
-      setActiveStep(activeStep + 1);
+      setActiveStep((s) => s + 1);
       setHighlightedLayer(ASSEMBLY_STEPS[activeStep].layerIndex);
     }
   };
@@ -453,20 +456,23 @@ export default function AssemblyGuideStudio() {
   const handlePrevStep = () => {
     soundFx.playClick();
     if (activeStep > 1) {
-      setActiveStep(activeStep - 1);
+      setActiveStep((s) => s - 1);
       setHighlightedLayer(ASSEMBLY_STEPS[activeStep - 2].layerIndex);
     }
   };
 
   const handleExportManual = () => {
     soundFx.playConfirm();
-    let md = "# 🛠️ Cyberdeck Mechanical Assembly & Stacking Field Manual\n\n";
-    md += `*Generated by Decksmith Studio on ${new Date().toLocaleDateString()}*\n\n`;
+    let md = `# DECKSMITH CYBERDECK FIELD ASSEMBLY MANUAL\n`;
+    md += `Generated: ${new Date().toUTCString()}\n\n`;
+    md += `## Overview\n`;
+    md += `This step-by-step mechanical stacking manual guides the assembly of a modular cyberdeck enclosure with verified fastener torque specifications.\n\n`;
+    md += `---\n\n`;
 
     ASSEMBLY_STEPS.forEach((s) => {
       md += `## Step ${s.step}: ${s.title}\n`;
-      md += `**Subtitle**: ${s.subtitle}\n`;
-      md += `**Description**: ${s.description}\n\n`;
+      md += `**Subsystem**: ${s.subtitle}\n\n`;
+      md += `${s.description}\n\n`;
       md += `### Fasteners & Tools\n`;
       md += `- **Fasteners**: ${s.fasteners.join(", ")}\n`;
       md += `- **Required Tools**: ${s.tools.join(", ")}\n`;
@@ -557,6 +563,19 @@ export default function AssemblyGuideStudio() {
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>
+
+              {/* Auto-Assemble Play Button */}
+              <button
+                onClick={() => {
+                  soundFx.playConfirm();
+                  if (!isAutoAssembling && explosionRatio === 0) setExplosionRatio(100);
+                  setIsAutoAssembling(!isAutoAssembling);
+                }}
+                className="px-3 py-1.5 bg-neon-green/20 border border-neon-green/50 text-neon-green rounded-xl text-[10px] font-bold flex items-center gap-1.5 shadow-md backdrop-blur-md hover:bg-neon-green/30"
+              >
+                {isAutoAssembling ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                <span>{isAutoAssembling ? "Pause Animation" : "Auto-Assemble"}</span>
+              </button>
             </div>
 
             {/* Explosion Slider Overlay (Bottom) */}
@@ -572,7 +591,7 @@ export default function AssemblyGuideStudio() {
                 max="100"
                 value={explosionRatio}
                 onChange={(e) => setExplosionRatio(Number(e.target.value))}
-                className="flex-1 accent-neon-green cursor-pointer h-2 bg-gray-950 rounded-lg"
+                className="w-full h-1.5 bg-gray-950 rounded-lg appearance-none cursor-pointer accent-neon-green"
               />
 
               <button
@@ -580,129 +599,95 @@ export default function AssemblyGuideStudio() {
                   soundFx.playClick();
                   setExplosionRatio(explosionRatio === 0 ? 60 : 0);
                 }}
-                className="px-3 py-1 bg-gray-950 border border-gray-700 text-xs font-bold text-cyan-300 rounded-lg shrink-0"
+                className="px-3 py-1 bg-gray-800 hover:bg-gray-700 text-gray-200 text-[10px] font-bold rounded-lg border border-gray-700 shrink-0"
               >
-                {explosionRatio === 0 ? "Explode" : "Collapse"}
+                {explosionRatio === 0 ? "Explode View" : "Collapse 0%"}
               </button>
             </div>
-          </div>
-
-          {/* Layer Quick Selector Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-            <span className="text-gray-500 font-bold uppercase shrink-0">Layers:</span>
-            {ASSEMBLY_STEPS.map((s) => (
-              <button
-                key={s.step}
-                onClick={() => {
-                  soundFx.playClick();
-                  setActiveStep(s.step);
-                  setHighlightedLayer(s.layerIndex);
-                }}
-                className={`px-3 py-1.5 rounded-xl border text-[11px] font-bold whitespace-nowrap transition-all ${
-                  activeStep === s.step
-                    ? "bg-neon-green text-black border-neon-green shadow-md shadow-neon-green/10"
-                    : "bg-gray-900 border-gray-800 text-gray-400 hover:text-white"
-                }`}
-              >
-                L{s.step}: {s.title.split(" ")[0]}
-              </button>
-            ))}
           </div>
         </div>
 
-        {/* Right Column: Step-by-Step Mechanical Guide (5 Cols) */}
-        <div className="lg:col-span-5 space-y-5">
-          {/* Step Detail Card */}
-          <div className="p-6 bg-gray-900/80 border border-gray-800 rounded-3xl space-y-5 backdrop-blur-md shadow-xl">
-            {/* Step Navigation Header */}
-            <div className="flex items-center justify-between border-b border-gray-800 pb-4">
-              <div>
-                <span className="text-[10px] font-bold text-neon-green uppercase tracking-wider">
-                  Phase {activeStep} of {ASSEMBLY_STEPS.length}
+        {/* Stepper Guide & Fastener Details (5 Cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Active Step Card */}
+          <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-5 shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-neon-green text-black">
+                  Stage {currentStepData.step} / {ASSEMBLY_STEPS.length}
                 </span>
-                <h2 className="text-lg font-black text-white mt-0.5">{currentStepData.title}</h2>
-                <div className="text-xs text-cyan-400 font-bold">{currentStepData.subtitle}</div>
+                <span className="text-xs text-gray-400 font-bold">{currentStepData.subtitle}</span>
               </div>
 
-              <div className="flex gap-1.5">
-                <button
-                  onClick={handlePrevStep}
-                  disabled={activeStep === 1}
-                  className="p-2 rounded-xl bg-gray-950 border border-gray-800 text-gray-300 hover:text-white disabled:opacity-30"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleNextStep}
-                  disabled={activeStep === ASSEMBLY_STEPS.length}
-                  className="p-2 rounded-xl bg-neon-green text-black font-bold disabled:opacity-30"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+              {/* Fastener Checked Indicator */}
+              <button
+                onClick={() => toggleStepCompleted(currentStepData.step)}
+                className={`p-1.5 rounded-lg border text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  completedSteps.has(currentStepData.step)
+                    ? "bg-emerald-950 text-neon-green border-neon-green/40"
+                    : "bg-gray-950 text-gray-500 border-gray-800 hover:text-white"
+                }`}
+              >
+                {completedSteps.has(currentStepData.step) ? <CheckSquare className="w-4 h-4 text-neon-green" /> : <Square className="w-4 h-4" />}
+                <span>{completedSteps.has(currentStepData.step) ? "Torqued ✓" : "Mark Done"}</span>
+              </button>
+            </div>
+
+            <div>
+              <h2 className="text-lg font-black text-white">{currentStepData.title}</h2>
+              <p className="text-xs text-gray-300 mt-2 leading-relaxed">{currentStepData.description}</p>
+            </div>
+
+            {/* Fasteners & Torque Limits */}
+            <div className="p-4 bg-gray-950/80 border border-gray-800/80 rounded-2xl space-y-2 text-xs">
+              <div className="flex items-center justify-between text-yellow-400 font-bold">
+                <span className="flex items-center gap-1.5">
+                  <Wrench className="w-3.5 h-3.5" />
+                  Torque Limit:
+                </span>
+                <span>{currentStepData.torque}</span>
+              </div>
+
+              <div className="text-[11px] text-gray-400">
+                <span className="font-bold text-gray-300">Fasteners: </span>
+                {currentStepData.fasteners.join(", ")}
+              </div>
+
+              <div className="text-[11px] text-gray-400">
+                <span className="font-bold text-gray-300">Tools: </span>
+                {currentStepData.tools.join(", ")}
               </div>
             </div>
 
-            {/* Step Description */}
-            <p className="text-xs text-gray-300 leading-relaxed">
-              {currentStepData.description}
-            </p>
-
-            {/* Fasteners, Tools & Torque Specs */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="p-3.5 bg-gray-950 border border-gray-800 rounded-2xl space-y-1">
-                <div className="text-[10px] text-gray-500 font-bold uppercase flex items-center gap-1.5">
-                  <Wrench className="w-3.5 h-3.5 text-cyan-400" />
-                  Required Fasteners
-                </div>
-                {currentStepData.fasteners.map((f, i) => (
-                  <div key={i} className="text-xs font-bold text-white">{f}</div>
-                ))}
-              </div>
-
-              <div className="p-3.5 bg-gray-950 border border-gray-800 rounded-2xl space-y-1">
-                <div className="text-[10px] text-gray-500 font-bold uppercase flex items-center gap-1.5">
-                  <Hammer className="w-3.5 h-3.5 text-yellow-400" />
-                  Torque Limit
-                </div>
-                <div className="text-xs font-bold text-yellow-400">{currentStepData.torque}</div>
-              </div>
-            </div>
-
-            {/* Tools Checklist */}
+            {/* Cautions */}
             <div className="space-y-1.5">
-              <div className="text-[10px] text-gray-400 font-bold uppercase">Tools Checklist</div>
-              <div className="flex flex-wrap gap-1.5">
-                {currentStepData.tools.map((t, i) => (
-                  <span key={i} className="px-2.5 py-1 rounded-lg bg-gray-950 border border-gray-800 text-[11px] text-gray-300 flex items-center gap-1">
-                    <Check className="w-3 h-3 text-neon-green" />
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Assembly Cautions */}
-            <div className="p-3.5 bg-rose-950/30 border border-rose-800/40 rounded-2xl space-y-1.5">
-              <div className="text-[10px] text-rose-400 font-bold uppercase flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                Assembly Caution & Precautions
-              </div>
               {currentStepData.cautions.map((c, i) => (
-                <div key={i} className="text-[11px] text-gray-300 leading-relaxed">• {c}</div>
+                <div key={i} className="flex items-start gap-2 text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>{c}</span>
+                </div>
               ))}
             </div>
 
-            {/* Technical Specs Table */}
-            <div className="p-3.5 bg-gray-950 border border-gray-800 rounded-2xl space-y-1.5">
-              <div className="text-[10px] text-gray-500 font-bold uppercase">Mechanical Stacking Specs</div>
-              <div className="space-y-1">
-                {Object.entries(currentStepData.specs).map(([k, v]) => (
-                  <div key={k} className="flex justify-between text-[11px]">
-                    <span className="text-gray-400">{k}:</span>
-                    <span className="text-white font-bold">{v}</span>
-                  </div>
-                ))}
-              </div>
+            {/* Step Navigation Controls */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-800">
+              <button
+                onClick={handlePrevStep}
+                disabled={activeStep === 1}
+                className="px-4 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-gray-300 hover:text-white disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Previous Layer
+              </button>
+
+              <button
+                onClick={handleNextStep}
+                disabled={activeStep === ASSEMBLY_STEPS.length}
+                className="px-4 py-2 bg-neon-green text-black font-bold rounded-xl text-xs hover:bg-neon-green/90 disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 shadow-md shadow-neon-green/20"
+              >
+                Next Layer
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
