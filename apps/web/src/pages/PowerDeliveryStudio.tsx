@@ -238,6 +238,58 @@ export default function PowerDeliveryStudio() {
           </div>
         </div>
       </div>
+
+      {/* Battery Pack Spot-Welder & Nickel Strip Ampacity Calculator */}
+      <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+          <div>
+            <h2 className="text-xs font-bold text-white uppercase flex items-center gap-2">
+              <Zap className="w-4 h-4 text-neon-green" />
+              Battery Pack Spot-Welder & Nickel Strip Ampacity Calculator
+            </h2>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              Calculate pure nickel strip current limits, pulse energy in Joules ($E = \frac{1}{2}CV^2$), and welding duration
+            </p>
+          </div>
+
+          <span className="text-xs font-bold px-3 py-1 rounded-xl bg-gray-950 border border-neon-green/30 text-neon-green">
+            Pure Nickel 99.6% (Ni200)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 bg-gray-950 rounded-2xl border border-gray-800 space-y-2">
+            <div className="flex justify-between text-xs font-bold">
+              <span className="text-gray-300">0.15mm × 8mm Strip</span>
+              <span className="text-neon-green">15A Cont / 25A Peak</span>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Standard for 18650 / 21700 parallel bridge tabs with 35–45J pulse energy.
+            </p>
+          </div>
+
+          <div className="p-4 bg-gray-950 rounded-2xl border border-gray-800 space-y-2">
+            <div className="flex justify-between text-xs font-bold">
+              <span className="text-gray-300">0.20mm × 10mm Heavy</span>
+              <span className="text-cyan-400">25A Cont / 40A Peak</span>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              High-drain cyberdeck packs with dual series busbars requiring 55–70J pulse energy.
+            </p>
+          </div>
+
+          <div className="p-4 bg-gray-950 rounded-2xl border border-gray-800 space-y-2">
+            <div className="flex justify-between text-xs font-bold">
+              <span className="text-gray-300">Salt Water Rust Test</span>
+              <span className="text-amber-400">Verification Rule</span>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-relaxed">
+              Submerge sample in salty water for 24h. Pure nickel remains pristine silver; fake steel rusts orange.
+            </p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
