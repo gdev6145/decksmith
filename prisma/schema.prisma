@@ -284,15 +284,20 @@ model TimeLog {
 }
 
 model Alert {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  partId    String
-  part      Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
-  minPrice  Float
-  currency  String   @default("USD")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  partId          String
+  part            Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  minPrice        Float?
+  initialPrice    Float?
+  lastPrice       Float?
+  currency        String   @default("USD")
+  alertOnDrop     Boolean  @default(true)
+  alertOnIncrease Boolean  @default(false)
+  active          Boolean  @default(true)
+  lastCheckedAt   DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   @@index([partId])
   @@index([userId])

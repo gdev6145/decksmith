@@ -36,6 +36,7 @@ import LogicAnalyzerStudio from "./pages/LogicAnalyzerStudio";
 import AudioSynthStudio from "./pages/AudioSynthStudio";
 import WebSerialStudio from "./pages/WebSerialStudio";
 import AssemblyGuideStudio from "./pages/AssemblyGuideStudio";
+import PriceWatchStudio from "./pages/PriceWatchStudio";
 
 function App() {
   return (
@@ -125,6 +126,8 @@ function App() {
               <Route path="build-guide" element={<AssemblyGuideStudio />} />
               <Route path="parts" element={<Parts />} />
               <Route path="parts/:slug" element={<PartDetail />} />
+              <Route path="price-watch" element={<PriceWatchStudio />} />
+              <Route path="alerts" element={<PriceWatchStudio />} />
               <Route path="settings" element={<Settings />} />
               <Route path="compare" element={<Compare />} />
               <Route path="wishlist" element={<Wishlist />} />

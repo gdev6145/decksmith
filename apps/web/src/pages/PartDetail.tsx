@@ -25,9 +25,12 @@ import {
   ChevronRight,
   MessageSquare,
   Activity,
-  DollarSign,
   Send,
+  Tag,
+  Bell,
 } from "lucide-react";
+import { useAuth } from "../AuthContext";
+import { useNotification } from "../NotificationContext";
 import { soundFx } from "../lib/soundFx";
 
 function getPartCategoryIcon(category: string) {
@@ -114,6 +117,9 @@ export default function PartDetail() {
   const [newRating, setNewRating] = useState(5);
   const [newReviewContent, setNewReviewContent] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [isWatched, setIsWatched] = useState(false);
+  const { token } = useAuth();
+  const { dispatchToast } = useNotification();
 
   useEffect(() => {
     const fetchPart = async () => {
@@ -129,6 +135,9 @@ export default function PartDetail() {
           // Fetch reviews and alternatives
           fetchReviews(data.slug);
           fetchAlternatives(data.slug);
+
+          // Check if already watched
+          checkWatchedStatus(data.id);
         }
       } catch (e) {
         console.error(e);
@@ -138,7 +147,55 @@ export default function PartDetail() {
     };
 
     fetchPart();
-  }, [slug]);
+  }, [slug, token]);
+
+  const checkWatchedStatus = async (partId: string) => {
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(`${API_URL}/api/alerts`, { headers });
+      if (res.ok) {
+        const alerts = await res.json();
+        const found = alerts.some((a: any) => a.partId === partId);
+        setIsWatched(found);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleToggleWatch = async () => {
+    if (!part) return;
+    soundFx.playConfirm();
+
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/api/alerts/watch`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          partId: part.id,
+          alertOnDrop: true,
+          alertOnIncrease: true,
+        }),
+      });
+
+      if (res.ok) {
+        setIsWatched(true);
+        dispatchToast({
+          type: "price_drop",
+          title: "👁️ Price Watch Activated",
+          message: `Now tracking live price drops for ${part.name}. You will receive notifications when prices change.`,
+          url: "/price-watch",
+          actionLabel: "View Watched Hardware",
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchReviews = async (partSlug: string) => {
     try {
@@ -291,15 +348,30 @@ export default function PartDetail() {
                 <span className="text-xs text-cyan-300 font-mono">Verified Source: {primaryPrice.source}</span>
               </div>
 
-              <a
-                href={primaryPrice.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-mono text-xs flex items-center gap-1.5 transition-colors"
-              >
-                <span>Vendor Lookup</span>
-                <ExternalLink className="w-3.5 h-3.5 text-neon-green" />
-              </a>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleToggleWatch}
+                  className={`px-3.5 py-2 rounded-xl border font-mono text-xs font-bold flex items-center gap-1.5 transition-all ${
+                    isWatched
+                      ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm"
+                      : "bg-gray-800 hover:bg-gray-700 border-gray-700 text-gray-300 hover:text-white"
+                  }`}
+                  title="Track real price drops & receive alerts"
+                >
+                  <Tag className={`w-3.5 h-3.5 ${isWatched ? "text-amber-400" : "text-gray-400"}`} />
+                  <span>{isWatched ? "Watching Price" : "Watch Price"}</span>
+                </button>
+
+                <a
+                  href={primaryPrice.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-mono text-xs flex items-center gap-1.5 transition-colors"
+                >
+                  <span>Vendor Lookup</span>
+                  <ExternalLink className="w-3.5 h-3.5 text-neon-green" />
+                </a>
+              </div>
             </div>
           )}
 

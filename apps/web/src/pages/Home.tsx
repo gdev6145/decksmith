@@ -32,6 +32,7 @@ import {
   ChevronRight,
   Sliders,
   Usb,
+  Tag,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -58,6 +59,17 @@ const allStudios: StudioItem[] = [
     color: "text-neon-green",
     borderColor: "border-neon-green/40 hover:border-neon-green",
     glow: "hover:shadow-neon-green/20",
+  },
+  {
+    icon: Tag,
+    badge: "Real-Time Scraper",
+    title: "Watched Hardware & Price Alerts",
+    description: "Track live component market prices across Adafruit, AliExpress & Mouser, detect real price drops, and receive instant alerts.",
+    link: "/price-watch",
+    category: "core",
+    color: "text-amber-400",
+    borderColor: "border-amber-500/40 hover:border-amber-400",
+    glow: "hover:shadow-amber-500/20",
   },
   {
     icon: Crosshair,
