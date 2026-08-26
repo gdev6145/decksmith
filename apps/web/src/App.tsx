@@ -106,8 +106,7 @@ function App() {
               <Route path="openwrt" element={<RouterStudio />} />
               <Route path="survival" element={<AirgapSurvivalStudio />} />
               <Route path="airgap" element={<AirgapSurvivalStudio />} />
-              <Route path="kicad" element={<AirgapSurvivalStudio />} />
-              <Route path="pcb" element={<AirgapSurvivalStudio />} />
+              <Route path="kicad" element={<PcbViewerStudio />} />
               <Route path="logic" element={<LogicAnalyzerStudio />} />
               <Route path="sniffer" element={<LogicAnalyzerStudio />} />
               <Route path="bus" element={<LogicAnalyzerStudio />} />
