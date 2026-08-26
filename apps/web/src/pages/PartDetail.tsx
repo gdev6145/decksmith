@@ -393,6 +393,64 @@ export default function PartDetail() {
             </div>
           )}
         </div>
+          {/* Hardware Studio Integration Bar */}
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-gray-900 via-gray-900 to-gray-950 border border-gray-800 space-y-2 shadow-xl">
+            <span className="text-[10px] text-gray-400 font-mono uppercase font-bold tracking-wider block flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-neon-green" />
+              Related Engineering Studios:
+            </span>
+            <div className="flex flex-wrap gap-2 text-xs font-mono">
+              {(part.category === "SBC" || part.category === "MCU") && (
+                <>
+                  <Link to="/pinout" className="px-3 py-1.5 rounded-xl bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 font-bold flex items-center gap-1">
+                    <Cpu className="w-3.5 h-3.5" /> 40-Pin Pinout Studio
+                  </Link>
+                  <Link to="/flasher" className="px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/30 hover:bg-purple-500/20 font-bold flex items-center gap-1">
+                    <HardDrive className="w-3.5 h-3.5" /> OS Flasher & Kernel
+                  </Link>
+                </>
+              )}
+              {part.category === "KEYBOARD" && (
+                <Link to="/keyboard" className="px-3 py-1.5 rounded-xl bg-pink-500/10 text-pink-300 border border-pink-500/30 hover:bg-pink-500/20 font-bold flex items-center gap-1">
+                  <Keyboard className="w-3.5 h-3.5" /> Mechanical Matrix & QMK
+                </Link>
+              )}
+              {part.category === "DISPLAY" && (
+                <Link to="/cad" className="px-3 py-1.5 rounded-xl bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20 font-bold flex items-center gap-1">
+                  <Monitor className="w-3.5 h-3.5" /> 3D CAD Bezel Mounts
+                </Link>
+              )}
+              {(part.category === "BATTERY" || part.category === "POWER") && (
+                <>
+                  <Link to="/power" className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 font-bold flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5" /> USB-PD 3.1 & Spot Welder
+                  </Link>
+                  <Link to="/solar" className="px-3 py-1.5 rounded-xl bg-yellow-500/10 text-yellow-300 border border-yellow-500/30 hover:bg-yellow-500/20 font-bold flex items-center gap-1">
+                    <BatteryCharging className="w-3.5 h-3.5" /> Solar Autonomy Studio
+                  </Link>
+                </>
+              )}
+              {part.category === "NETWORK" && (
+                <>
+                  <Link to="/rf" className="px-3 py-1.5 rounded-xl bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/20 font-bold flex items-center gap-1">
+                    <Wifi className="w-3.5 h-3.5" /> RF Link Budget & Fresnel
+                  </Link>
+                  <Link to="/sdr" className="px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/30 hover:bg-purple-500/20 font-bold flex items-center gap-1">
+                    <Activity className="w-3.5 h-3.5" /> SDR Radio & Waterfall
+                  </Link>
+                </>
+              )}
+              {part.category === "COOLING" && (
+                <Link to="/cooling" className="px-3 py-1.5 rounded-xl bg-orange-500/10 text-orange-300 border border-orange-500/30 hover:bg-orange-500/20 font-bold flex items-center gap-1">
+                  <Fan className="w-3.5 h-3.5" /> Thermal Heatmap & Fan PWM
+                </Link>
+              )}
+              <Link to="/pcb" className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-neon-green border border-neon-green/30 hover:bg-emerald-500/20 font-bold flex items-center gap-1">
+                <Layers className="w-3.5 h-3.5" /> Gerber PCB Studio
+              </Link>
+            </div>
+          </div>
+
       </div>
 
       {/* Side-by-Side Alternatives & Review Sections */}
