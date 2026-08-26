@@ -20,6 +20,8 @@ import {
   Flame,
   Info,
   Shield,
+  FileCode,
+  Terminal,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -78,18 +80,19 @@ const RPI_40_PINS: PinDef[] = [
 export default function PinoutStudio() {
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedPin, setSelectedPin] = useState<PinDef>(RPI_40_PINS[2]); // Default GPIO 2 SDA
-  const [copiedOverlay, setCopiedOverlay] = useState<boolean>(false);
+  const [selectedPin, setSelectedPin] = useState<PinDef>(RPI_40_PINS[2]);
+  const [activeCodeTab, setActiveCodeTab] = useState<"dts" | "kicad" | "python">("dts");
+  const [copiedCode, setCopiedCode] = useState<boolean>(false);
 
   const getPinColor = (type: PinDef["type"]) => {
     switch (type) {
       case "power_5v": return "bg-rose-500 text-white border-rose-400";
-      case "power_3v3": return "bg-amber-500 text-gray-950 border-amber-300";
+      case "power_3v3": return "bg-amber-500 text-black border-amber-300";
       case "gnd": return "bg-gray-800 text-gray-400 border-gray-700";
-      case "i2c": return "bg-cyan-500 text-gray-950 border-cyan-300";
+      case "i2c": return "bg-cyan-500 text-black border-cyan-300";
       case "spi": return "bg-purple-500 text-white border-purple-400";
-      case "uart": return "bg-yellow-400 text-gray-950 border-yellow-300";
-      case "pwm": return "bg-neon-green text-gray-950 border-emerald-400";
+      case "uart": return "bg-yellow-400 text-black border-yellow-300";
+      case "pwm": return "bg-neon-green text-black border-emerald-400";
       case "i2s": return "bg-pink-500 text-white border-pink-400";
       default: return "bg-gray-900 text-gray-200 border-gray-700";
     }
@@ -98,179 +101,223 @@ export default function PinoutStudio() {
   const filteredPins = useMemo(() => {
     return RPI_40_PINS.filter((pin) => {
       const matchesType = selectedTypeFilter === "ALL" || pin.type === selectedTypeFilter;
-      const matchesSearch =
-        searchQuery.trim() === "" ||
+      const matchesQuery =
         pin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        String(pin.pin).includes(searchQuery) ||
-        (pin.bcm !== undefined && String(pin.bcm).includes(searchQuery)) ||
-        (pin.altFuncs && pin.altFuncs.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase())));
-      return matchesType && matchesSearch;
+        pin.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (pin.bcm !== undefined && `gpio ${pin.bcm}`.includes(searchQuery.toLowerCase()));
+      return matchesType && matchesQuery;
     });
   }, [selectedTypeFilter, searchQuery]);
 
-  const overlaySnippet = useMemo(() => {
-    return `# /boot/firmware/config.txt
-# Decksmith Hardware Overlays
-dtparam=i2c_arm=on
-dtparam=spi=on
-dtparam=uart0=on
-dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4
-dtoverlay=i2c-rtc,ds3231
+  const deviceTreeOverlay = useMemo(() => {
+    return `/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835", "brcm,bcm2711", "brcm,bcm2712";
+
+    fragment@0 {
+        target = <&gpio>;
+        __overlay__ {
+            decksmith_pins: decksmith_pins {
+                brcm,pins = <2 3 14 15 18 19 20 21>;
+                brcm,function = <4 4 2 2 2 2 2 2>; /* I2C, UART, I2S */
+                brcm,pull = <2 2 0 2 0 0 0 0>;     /* Pull-up on SDA/SCL */
+            };
+        };
+    };
+};
 `;
   }, []);
 
-  return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-800">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-              Hardware Pinout Inspector
-            </span>
-            <span className="text-xs font-mono text-neon-green">Raspberry Pi 5 · RK3588 · Zero 2 W</span>
-          </div>
-          <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
-            <Cpu className="w-7 h-7 text-cyan-400" />
-            40-Pin GPIO & Hardware Bus Studio
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Touch-interactive 40-pin header explorer with instant bus filtering, alternate function (ALT0-ALT5) lookup, and Device Tree overlays.
-          </p>
-        </div>
+  const kicadSymbol = useMemo(() => {
+    let sym = `(kicad_symbol_lib (version 20211014) (generator Decksmith_Studio)\n`;
+    sym += `  (symbol "Raspberry_Pi_40Pin_Header" (in_bom yes) (on_board yes)\n`;
+    sym += `    (property "Reference" "J" (id 0) (at 0 25.4 0))\n`;
+    sym += `    (property "Value" "RPi_40Pin_GPIO" (id 1) (at 0 -25.4 0))\n`;
+    sym += `    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x20_P2.54mm_Vertical" (id 2) (at 0 0 0))\n`;
+    sym += `    (symbol "RPi_40Pin_GPIO_1_1"\n`;
 
-        {/* Cross-Links */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Link
-            to="/builder"
-            className="px-3.5 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <Compass className="w-3.5 h-3.5 text-neon-green" />
-            Blueprint Studio
-          </Link>
-          <Link
-            to="/companion"
-            className="px-3.5 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <Activity className="w-3.5 h-3.5 text-cyan-400" />
-            I2C Bus Scanner
-          </Link>
+    RPI_40_PINS.forEach((p) => {
+      const isOdd = p.pin % 2 !== 0;
+      const y = 20 - Math.floor((p.pin - 1) / 2) * 2.54;
+      const x = isOdd ? -5.08 : 5.08;
+      sym += `      (pin passive line (at ${x} ${y} ${isOdd ? "0" : "180"}) (length 2.54) (name "${p.name}") (number "${p.pin}"))\n`;
+    });
+
+    sym += `    )\n  )\n)\n`;
+    return sym;
+  }, []);
+
+  const pythonTestScript = useMemo(() => {
+    return `#!/usr/bin/env python3
+# DECKSMITH AUTOMATED GPIO & BUS HARDWARE TEST HARNESS
+import sys
+import time
+
+try:
+    import gpiod
+    import smbus2
+    import spidev
+    print("✅ All hardware communication libraries loaded successfully.")
+except ImportError as e:
+    print(f"⚠️ Missing library: {e}. Install via: pip install gpiod smbus2 spidev")
+
+def test_i2c_bus(bus_num=1):
+    print(f"📡 Scanning I2C Bus {bus_num}...")
+    try:
+        bus = smbus2.SMBus(bus_num)
+        found = []
+        for addr in range(0x03, 0x78):
+            try:
+                bus.read_byte(addr)
+                found.append(hex(addr))
+            except OSError:
+                pass
+        bus.close()
+        print(f"✅ Found {len(found)} I2C Devices: {', '.join(found) if found else 'None'}")
+    except Exception as err:
+        print(f"❌ I2C Error: {err}")
+
+def test_spi_bus(bus=0, device=0):
+    print(f"⚡ Testing SPI Loopback on Bus {bus}:{device}...")
+    try:
+        spi = spidev.SpiDev()
+        spi.open(bus, device)
+        spi.max_speed_hz = 10000000 # 10MHz
+        res = spi.xfer2([0xAA, 0x55, 0xFF])
+        spi.close()
+        print(f"✅ SPI Response: {[hex(b) for b in res]}")
+    except Exception as err:
+        print(f"❌ SPI Error: {err}")
+
+if __name__ == "__main__":
+    print("🚀 Running Decksmith Hardware Self-Test...")
+    test_i2c_bus(1)
+    test_spi_bus(0, 0)
+`;
+  }, []);
+
+  const activeContent = activeCodeTab === "dts" ? deviceTreeOverlay : activeCodeTab === "kicad" ? kicadSymbol : pythonTestScript;
+
+  const downloadFile = (filename: string, content: string, type: string) => {
+    soundFx.playConfirm();
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-mono space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 mb-2">
+            <Cpu className="w-3.5 h-3.5" />
+            40-Pin GPIO Header & Bus Explorer
+          </div>
+          <h1 className="text-3xl font-black text-white">40-Pin GPIO Pinout Studio</h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Explore I2C/SPI/UART/I2S multiplexing, export Device Tree overlays, KiCad symbols, and Python test scripts
+          </p>
         </div>
       </div>
 
       {/* Filter Chips & Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-stretch sm:items-center">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search pin name, BCM #, or function (e.g. SCL, 18, MOSI)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-gray-900 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
-          />
-        </div>
+      <div className="p-4 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-3 shadow-xl">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search by pin number, BCM GPIO, alternate function (e.g. I2S, SPI0_MOSI, PWM)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400"
+            />
+          </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 select-none">
-          {[
-            { id: "ALL", label: "All Pins" },
-            { id: "i2c", label: "I2C" },
-            { id: "spi", label: "SPI" },
-            { id: "uart", label: "UART" },
-            { id: "pwm", label: "PWM" },
-            { id: "i2s", label: "I2S Audio" },
-            { id: "power_5v", label: "5.0V" },
-            { id: "power_3v3", label: "3.3V" },
-            { id: "gnd", label: "GND" },
-          ].map((f) => (
-            <button
-              key={f.id}
-              onClick={() => {
-                soundFx.playClick();
-                setSelectedTypeFilter(f.id);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold whitespace-nowrap transition-all ${
-                selectedTypeFilter === f.id
-                  ? "bg-cyan-500 text-gray-950 shadow-md shadow-cyan-500/20 scale-105"
-                  : "bg-gray-900 text-gray-400 hover:text-white border border-gray-800"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+          <div className="flex gap-1.5 overflow-x-auto text-[11px] font-bold">
+            {["ALL", "i2c", "spi", "uart", "pwm", "i2s", "power_5v", "power_3v3", "gnd"].map((type) => (
+              <button
+                key={type}
+                onClick={() => {
+                  soundFx.playClick();
+                  setSelectedTypeFilter(type);
+                }}
+                className={`px-3 py-1.5 rounded-xl uppercase transition-all whitespace-nowrap ${
+                  selectedTypeFilter === type
+                    ? "bg-cyan-400 text-black shadow-md shadow-cyan-400/20"
+                    : "bg-gray-950 text-gray-400 hover:text-white border border-gray-800"
+                }`}
+              >
+                {type.replace("_", " ")}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Main Double-Row Pinout Layout & Inspector */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left: Physical 40-Pin Header Interactive Diagram */}
-        <div className="lg:col-span-7 bg-gray-900/80 border border-gray-800 rounded-2xl p-6 shadow-2xl space-y-4">
+      {/* Main Grid: 40-Pin Interactive Header (7 Cols) + Pin Inspector & Code Exporter (5 Cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* 40-Pin Physical Header Visualizer */}
+        <div className="lg:col-span-7 bg-gray-900/90 border border-gray-800 rounded-3xl p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <h3 className="text-sm font-bold text-white font-mono flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
-              Standard 40-Pin Dual Header
-            </h3>
-            <span className="text-xs text-gray-400 font-mono">Pins 1 (Top Left) to 40 (Bottom Right)</span>
+            <h2 className="text-xs font-bold text-white uppercase flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-neon-green" />
+              Standard 2x20 2.54mm Pin Header Layout
+            </h2>
+            <span className="text-[10px] text-gray-500">Raspberry Pi 5 / 4 / CM4 IO</span>
           </div>
 
-          {/* 40-Pin Double Column Matrix */}
-          <div className="space-y-1.5">
-            {Array.from({ length: 20 }, (_, idx) => {
-              const leftPin = RPI_40_PINS[idx * 2]; // Odd pins: 1, 3, 5...
-              const rightPin = RPI_40_PINS[idx * 2 + 1]; // Even pins: 2, 4, 6...
-
-              const isLeftSelected = selectedPin.pin === leftPin.pin;
-              const isRightSelected = selectedPin.pin === rightPin.pin;
-
-              const isLeftMatch = filteredPins.some((p) => p.pin === leftPin.pin);
-              const isRightMatch = filteredPins.some((p) => p.pin === rightPin.pin);
+          {/* Dual Column Pin Grid */}
+          <div className="space-y-1.5 max-h-[480px] overflow-y-auto pr-1">
+            {Array.from({ length: 20 }).map((_, i) => {
+              const oddPin = RPI_40_PINS[i * 2];
+              const evenPin = RPI_40_PINS[i * 2 + 1];
 
               return (
-                <div key={idx} className="grid grid-cols-2 gap-3 items-center text-xs font-mono">
-                  {/* Left (Odd Pin) */}
+                <div key={i} className="grid grid-cols-2 gap-2 text-xs">
+                  {/* Left (Odd) Pin */}
                   <button
                     onClick={() => {
                       soundFx.playClick();
-                      setSelectedPin(leftPin);
+                      setSelectedPin(oddPin);
                     }}
-                    className={`flex items-center justify-between p-2 rounded-xl border transition-all ${
-                      isLeftSelected
-                        ? "border-cyan-400 bg-cyan-950/60 text-white shadow-lg shadow-cyan-400/20 scale-[1.02]"
-                        : isLeftMatch
-                        ? "border-gray-800 bg-gray-950 hover:border-gray-700 text-gray-300"
-                        : "border-gray-900 bg-gray-950/40 text-gray-600 opacity-40"
+                    className={`p-2 rounded-xl border flex items-center justify-between transition-all ${
+                      selectedPin.pin === oddPin.pin
+                        ? "border-neon-green bg-gray-800 ring-1 ring-neon-green shadow-md"
+                        : "bg-gray-950/80 border-gray-800 hover:border-gray-700 text-gray-300"
                     }`}
                   >
-                    <span className="truncate text-left font-bold">{leftPin.name}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center text-[9px] font-bold ${getPinColor(leftPin.type)}`}>
-                        {leftPin.pin}
-                      </span>
+                    <div className="flex items-center gap-2 truncate">
+                      <span className={`w-3 h-3 rounded-full border shrink-0 ${getPinColor(oddPin.type)}`} />
+                      <span className="font-bold truncate">{oddPin.name}</span>
                     </div>
+                    <span className="text-[10px] text-gray-500 font-mono ml-1">{oddPin.pin}</span>
                   </button>
 
-                  {/* Right (Even Pin) */}
+                  {/* Right (Even) Pin */}
                   <button
                     onClick={() => {
                       soundFx.playClick();
-                      setSelectedPin(rightPin);
+                      setSelectedPin(evenPin);
                     }}
-                    className={`flex items-center justify-between p-2 rounded-xl border transition-all ${
-                      isRightSelected
-                        ? "border-cyan-400 bg-cyan-950/60 text-white shadow-lg shadow-cyan-400/20 scale-[1.02]"
-                        : isRightMatch
-                        ? "border-gray-800 bg-gray-950 hover:border-gray-700 text-gray-300"
-                        : "border-gray-900 bg-gray-950/40 text-gray-600 opacity-40"
+                    className={`p-2 rounded-xl border flex items-center justify-between transition-all ${
+                      selectedPin.pin === evenPin.pin
+                        ? "border-neon-green bg-gray-800 ring-1 ring-neon-green shadow-md"
+                        : "bg-gray-950/80 border-gray-800 hover:border-gray-700 text-gray-300"
                     }`}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center text-[9px] font-bold ${getPinColor(rightPin.type)}`}>
-                        {rightPin.pin}
-                      </span>
+                    <span className="text-[10px] text-gray-500 font-mono mr-1">{evenPin.pin}</span>
+                    <div className="flex items-center gap-2 truncate justify-end">
+                      <span className="font-bold truncate">{evenPin.name}</span>
+                      <span className={`w-3 h-3 rounded-full border shrink-0 ${getPinColor(evenPin.type)}`} />
                     </div>
-                    <span className="truncate text-right font-bold">{rightPin.name}</span>
                   </button>
                 </div>
               );
@@ -278,80 +325,98 @@ dtoverlay=i2c-rtc,ds3231
           </div>
         </div>
 
-        {/* Right: Selected Pin Inspector & Overlay Exporter */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Pin Details Card */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-              <div className="flex items-center gap-3">
-                <span className={`w-9 h-9 rounded-xl border flex items-center justify-center text-sm font-black font-mono shadow-md ${getPinColor(selectedPin.type)}`}>
-                  {selectedPin.pin}
-                </span>
-                <div>
-                  <h3 className="text-base font-black text-white">{selectedPin.name}</h3>
-                  <span className="text-xs font-mono uppercase text-cyan-400 font-bold">
-                    Type: {selectedPin.type.replace("_", " ")}
-                  </span>
-                </div>
-              </div>
+        {/* Pin Inspector & Exporters (5 Cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Selected Pin Details */}
+          <div className="p-5 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-3 shadow-xl">
+            <div className="flex items-center justify-between border-b border-gray-800 pb-2.5">
+              <span className="text-xs font-bold text-white flex items-center gap-2">
+                <span className={`w-3 h-3 rounded-full border ${getPinColor(selectedPin.type)}`} />
+                Pin {selectedPin.pin}: {selectedPin.name}
+              </span>
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-gray-800 text-cyan-300">
+                {selectedPin.type.replace("_", " ")}
+              </span>
             </div>
 
-            <div className="space-y-3 text-xs font-mono">
-              <div className="p-3 bg-gray-950 rounded-xl border border-gray-800">
-                <span className="text-gray-400 block mb-1">Description & Electrical Behavior:</span>
-                <p className="text-gray-200 leading-relaxed font-sans">{selectedPin.desc}</p>
+            <p className="text-xs text-gray-300 leading-relaxed">{selectedPin.desc}</p>
+
+            {selectedPin.altFuncs && (
+              <div className="pt-2 border-t border-gray-800">
+                <span className="text-[10px] text-gray-400 font-bold block mb-1">Alternate Bus Functions:</span>
+                <div className="flex flex-wrap gap-1">
+                  {selectedPin.altFuncs.map((alt) => (
+                    <span key={alt} className="px-2 py-0.5 bg-gray-950 text-cyan-300 rounded text-[10px] border border-gray-800">
+                      {alt}
+                    </span>
+                  ))}
+                </div>
               </div>
-
-              {selectedPin.bcm !== undefined && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-2.5 bg-gray-950 rounded-lg border border-gray-800">
-                    <span className="text-gray-400 block text-[10px]">BCM GPIO #</span>
-                    <span className="text-neon-green font-bold text-sm">GPIO {selectedPin.bcm}</span>
-                  </div>
-                  <div className="p-2.5 bg-gray-950 rounded-lg border border-gray-800">
-                    <span className="text-gray-400 block text-[10px]">Physical Header</span>
-                    <span className="text-cyan-400 font-bold text-sm">Pin #{selectedPin.pin}</span>
-                  </div>
-                </div>
-              )}
-
-              {selectedPin.altFuncs && (
-                <div className="p-3 bg-gray-950 rounded-xl border border-gray-800 space-y-1.5">
-                  <span className="text-gray-400 block">Alternate Silicon Functions (ALT0 - ALT5):</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {selectedPin.altFuncs.map((f, i) => (
-                      <span key={i} className="px-2 py-0.5 rounded bg-gray-900 border border-gray-800 text-yellow-300 text-[11px] font-bold">
-                        {f}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Config.txt Overlays */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-2xl p-6 space-y-4 shadow-2xl">
+          {/* Exporter Tabs */}
+          <div className="p-5 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-              <h3 className="text-sm font-bold text-white font-mono uppercase">
-                /boot/firmware/config.txt Overlays
-              </h3>
-              <button
-                onClick={() => {
-                  soundFx.playConfirm();
-                  navigator.clipboard.writeText(overlaySnippet);
-                  setCopiedOverlay(true);
-                  setTimeout(() => setCopiedOverlay(false), 2000);
-                }}
-                className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 font-mono flex items-center gap-1"
-              >
-                {copiedOverlay ? <Check className="w-3 h-3 text-neon-green" /> : <Copy className="w-3 h-3" />}
-                {copiedOverlay ? "Copied" : "Copy"}
-              </button>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => setActiveCodeTab("dts")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeCodeTab === "dts" ? "bg-neon-green text-black" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  dtoverlay.dts
+                </button>
+                <button
+                  onClick={() => setActiveCodeTab("kicad")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeCodeTab === "kicad" ? "bg-purple-500 text-white" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  KiCad .kicad_sym
+                </button>
+                <button
+                  onClick={() => setActiveCodeTab("python")}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                    activeCodeTab === "python" ? "bg-cyan-400 text-black" : "text-gray-400 hover:text-white"
+                  }`}
+                >
+                  Python Test
+                </button>
+              </div>
+
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => {
+                    soundFx.playConfirm();
+                    navigator.clipboard.writeText(activeContent);
+                    setCopiedCode(true);
+                    setTimeout(() => setCopiedCode(false), 2000);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-gray-800 text-xs text-gray-200 font-bold hover:bg-gray-700 flex items-center gap-1"
+                >
+                  {copiedCode ? <Check className="w-3.5 h-3.5 text-neon-green" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedCode ? "Copied" : "Copy"}</span>
+                </button>
+
+                <button
+                  onClick={() =>
+                    downloadFile(
+                      activeCodeTab === "dts" ? "decksmith-pins.dts" : activeCodeTab === "kicad" ? "RPi_40Pin_GPIO.kicad_sym" : "test_hardware.py",
+                      activeContent,
+                      "text/plain"
+                    )
+                  }
+                  className="px-2.5 py-1 rounded-lg bg-neon-green text-black text-xs font-bold hover:bg-neon-green/90 flex items-center gap-1"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Save</span>
+                </button>
+              </div>
             </div>
 
-            <pre className="p-4 bg-gray-950 rounded-xl border border-gray-800 text-xs font-mono text-cyan-300 overflow-x-auto leading-relaxed select-all">
-              {overlaySnippet}
+            <pre className="p-4 bg-gray-950 rounded-2xl border border-gray-800 text-xs text-gray-200 overflow-x-auto leading-relaxed max-h-56 select-all">
+              {activeContent}
             </pre>
           </div>
         </div>

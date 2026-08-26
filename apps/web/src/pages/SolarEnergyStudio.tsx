@@ -18,6 +18,9 @@ import {
   Activity,
   HardDrive,
   Keyboard,
+  Clock,
+  Thermometer,
+  AlertTriangle,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
 
@@ -44,14 +47,16 @@ export default function SolarEnergyStudio() {
 
   // Solar Harvesting Inputs
   const [solarPanelWatts, setSolarPanelWatts] = useState<number>(28);
-  const [peakSunHours, setPeakSunHours] = useState<number>(4.5); // 2.0 (winter) - 6.5 (summer)
+  const [peakSunHours, setPeakSunHours] = useState<number>(4.5);
   const [controllerType, setControllerType] = useState<"mppt" | "pwm">("mppt");
-  const [environmentalLoss, setEnvironmentalLoss] = useState<number>(0.85); // dust/angle loss
+  const [environmentalLoss, setEnvironmentalLoss] = useState<number>(0.85);
 
   // Battery Storage Inputs
   const [batteryChemistryId, setBatteryChemistryId] = useState<string>("lifepo4");
   const [batteryCapacityMah, setBatteryCapacityMah] = useState<number>(15000);
   const [batteryPacksParallel, setBatteryPacksParallel] = useState<number>(1);
+  const [ambientTempC, setAmbientTempC] = useState<number>(20);
+  const [simulatedHour, setSimulatedHour] = useState<number>(12); // 0 - 24h
 
   const [copiedReport, setCopiedReport] = useState<boolean>(false);
 
@@ -74,9 +79,15 @@ export default function SolarEnergyStudio() {
     const usablePackCapacityWh = totalPackCapacityWh * chemistry.maxDoD;
 
     const daysOfAutonomy = usablePackCapacityWh / Math.max(1, totalDailyWhConsumed);
-
-    // Solar Re-charge time on a clear day
     const hoursToFullRecharge = usablePackCapacityWh / Math.max(0.1, solarPanelWatts * controllerEff * environmentalLoss);
+
+    // Temperature derating factor
+    let tempDeratingFactor = 1.0;
+    if (ambientTempC < 0 && batteryChemistryId === "lifepo4") {
+      tempDeratingFactor = 0.5; // Cold-weather charge current limit
+    } else if (ambientTempC < -10) {
+      tempDeratingFactor = 0.2;
+    }
 
     return {
       totalDailyWhConsumed: Number(totalDailyWhConsumed.toFixed(1)),
@@ -87,6 +98,7 @@ export default function SolarEnergyStudio() {
       usablePackCapacityWh: Number(usablePackCapacityWh.toFixed(1)),
       daysOfAutonomy: Number(daysOfAutonomy.toFixed(2)),
       hoursToFullRecharge: Number(hoursToFullRecharge.toFixed(1)),
+      tempDeratingFactor,
     };
   }, [
     deckActivePowerW,
@@ -99,314 +111,301 @@ export default function SolarEnergyStudio() {
     batteryCapacityMah,
     batteryPacksParallel,
     chemistry,
+    ambientTempC,
+    batteryChemistryId,
   ]);
 
-  const markdownReport = useMemo(() => {
-    return `# ================================================================
-# DECKSMITH SOLAR & OFF-GRID ENERGY AUDIT REPORT
-# Generated: ${new Date().toISOString()}
-# Status: ${metrics.isNetPositive ? "✅ 100% SELF-SUSTAINING (NET POSITIVE)" : "⚠️ ENERGY DEFICIT (REQUIRES GRID CHARGE)"}
-# ================================================================
+  // 24-Hour Diurnal Curve Simulation
+  const diurnalData = useMemo(() => {
+    const hours = Array.from({ length: 25 }, (_, i) => i);
+    const controllerEff = controllerType === "mppt" ? 0.95 : 0.75;
+    let runningWh = metrics.usablePackCapacityWh * 0.7; // Start day at 70% battery
 
-### 1. DAILY ENERGY BALANCE
-- Daily Energy Consumption: ${metrics.totalDailyWhConsumed} Wh / day
-  • Active Usage: ${dailyActiveHours} hours @ ${deckActivePowerW} W
-  • Idle / Standby: ${24 - dailyActiveHours} hours @ ${deckIdlePowerW} W
-- Solar Generation Harvest: ${metrics.dailySolarWhHarvested} Wh / day
-  • Solar Array: ${solarPanelWatts}W (${controllerType.toUpperCase()} Controller, ${peakSunHours} Peak Sun Hours)
-- Net Daily Differential: ${metrics.netDailyWh > 0 ? "+" : ""}${metrics.netDailyWh} Wh / day
+    return hours.map((h) => {
+      // Solar Bell Curve between 6 AM (6) and 6 PM (18)
+      let sunMultiplier = 0;
+      if (h >= 6 && h <= 18) {
+        const peakDist = Math.abs(h - 12);
+        sunMultiplier = Math.max(0, Math.cos((peakDist / 6) * (Math.PI / 2)));
+      }
 
-### 2. BATTERY & AUTONOMY RESERVE
-- Battery Chemistry: ${chemistry.name}
-- Total Storage: ${metrics.totalPackCapacityWh} Wh (${batteryCapacityMah * batteryPacksParallel} mAh @ ${chemistry.nominalVoltage}V)
-- Usable Storage (${(chemistry.maxDoD * 100).toFixed(0)}% DoD): ${metrics.usablePackCapacityWh} Wh
-- Days of Zero-Sun Autonomy: ${metrics.daysOfAutonomy} days continuous runtime
-- Solar Full Re-charge Duration: ${metrics.hoursToFullRecharge} peak sun hours
-`;
-  }, [metrics, dailyActiveHours, deckActivePowerW, deckIdlePowerW, solarPanelWatts, controllerType, peakSunHours, chemistry, batteryCapacityMah, batteryPacksParallel]);
+      const currentGenW = solarPanelWatts * sunMultiplier * controllerEff * environmentalLoss * metrics.tempDeratingFactor;
+      const isDayActive = h >= 8 && h <= 16;
+      const currentLoadW = isDayActive ? deckActivePowerW : deckIdlePowerW;
+      const netHourlyW = currentGenW - currentLoadW;
 
-  const downloadReport = () => {
+      runningWh = Math.min(metrics.usablePackCapacityWh, Math.max(0, runningWh + netHourlyW));
+      const batterySocPct = Math.round((runningWh / Math.max(1, metrics.usablePackCapacityWh)) * 100);
+
+      return {
+        hour: h,
+        solarW: Number(currentGenW.toFixed(1)),
+        loadW: Number(currentLoadW.toFixed(1)),
+        batterySocPct,
+      };
+    });
+  }, [metrics, solarPanelWatts, controllerType, environmentalLoss, deckActivePowerW, deckIdlePowerW]);
+
+  const currentHourPoint = diurnalData[simulatedHour] || diurnalData[12];
+
+  const handleExportReport = () => {
     soundFx.playConfirm();
-    const blob = new Blob([markdownReport], { type: "text/markdown" });
+    let text = `# DECKSMITH SOLAR & OFF-GRID AUTONOMY REPORT\n`;
+    text += `Generated: ${new Date().toISOString()}\n\n`;
+    text += `## System Configuration\n`;
+    text += `- Solar Panel: ${solarPanelWatts}W (${controllerType.toUpperCase()} Controller)\n`;
+    text += `- Battery Storage: ${batteryCapacityMah}mAh (${chemistry.name})\n`;
+    text += `- Usable Capacity: ${metrics.usablePackCapacityWh} Wh\n`;
+    text += `- Daily Power Load: ${metrics.totalDailyWhConsumed} Wh/day\n`;
+    text += `- Daily Solar Harvest: ${metrics.dailySolarWhHarvested} Wh/day\n`;
+    text += `- Net Daily Energy Balance: ${metrics.netDailyWh > 0 ? "+" : ""}${metrics.netDailyWh} Wh/day\n`;
+    text += `- Autonomy Reserve: ${metrics.daysOfAutonomy} Days without Sun\n\n`;
+
+    const blob = new Blob([text], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "cyberdeck-solar-energy-audit.md";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "decksmith-solar-autonomy-report.md";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-mono space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-gray-800">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/30">
-              Off-Grid Field Energy Engine
-            </span>
-            <span className="text-xs font-mono text-neon-green">MPPT · LiFePO4 · Autonomy Modeling</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30 mb-2">
+            <Sun className="w-3.5 h-3.5" />
+            Solar Harvester & Off-Grid Autonomy Studio
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
-            <Sun className="w-7 h-7 text-yellow-400" />
-            Solar & Off-Grid Energy Harvesting Studio
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">
-            Model solar panel wattage, MPPT charge efficiency, battery depth of discharge (DoD), and zero-sun autonomy reserve for off-grid nomad cyberdecks.
+          <h1 className="text-3xl font-black text-white">Solar & Off-Grid Energy Studio</h1>
+          <p className="text-xs text-gray-400 mt-1">
+            Simulate 24-hour diurnal solar irradiance, MPPT buck efficiency, LiFePO4 cold derating, and battery autonomy reserve
           </p>
         </div>
 
-        {/* Quick Cross-Links */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <Link
-            to="/builder"
-            className="px-3.5 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <Compass className="w-3.5 h-3.5 text-neon-green" />
-            Blueprint Studio
-          </Link>
-          <Link
-            to="/companion"
-            className="px-3.5 py-2 rounded-lg border border-gray-700 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <Activity className="w-3.5 h-3.5 text-cyan-400" />
-            Field HUD
-          </Link>
-          <button
-            onClick={downloadReport}
-            className="px-3.5 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-400 text-gray-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-lg shadow-yellow-500/20"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export Energy Audit
-          </button>
-        </div>
+        <button
+          onClick={handleExportReport}
+          className="px-4 py-2.5 bg-neon-green text-black font-bold rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-neon-green/20"
+        >
+          <Download className="w-4 h-4" />
+          Export Energy Dossier (.md)
+        </button>
       </div>
 
-      {/* Top 4 KPI Metric Cards */}
+      {/* KPI Top Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`p-4 rounded-xl border space-y-2 ${metrics.isNetPositive ? "bg-emerald-950/40 border-emerald-500/50" : "bg-rose-950/40 border-rose-500/50"}`}>
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Net Daily Energy Balance</span>
-          <div className="text-2xl font-black text-white font-mono">
-            {metrics.netDailyWh > 0 ? "+" : ""}{metrics.netDailyWh} Wh/day
+        <div className="p-5 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-1 shadow-xl">
+          <span className="text-[10px] text-gray-400 uppercase font-bold">Daily Solar Harvest</span>
+          <div className="text-2xl font-black text-amber-400">{metrics.dailySolarWhHarvested} Wh/day</div>
+          <span className="text-[11px] text-gray-500">{peakSunHours} Peak Sun Hours</span>
+        </div>
+
+        <div className="p-5 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-1 shadow-xl">
+          <span className="text-[10px] text-gray-400 uppercase font-bold">Cyberdeck Daily Load</span>
+          <div className="text-2xl font-black text-white">{metrics.totalDailyWhConsumed} Wh/day</div>
+          <span className="text-[11px] text-gray-500">{dailyActiveHours}h Active @ {deckActivePowerW}W</span>
+        </div>
+
+        <div className="p-5 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-1 shadow-xl">
+          <span className="text-[10px] text-gray-400 uppercase font-bold">Net Energy Balance</span>
+          <div className={`text-2xl font-black ${metrics.isNetPositive ? "text-neon-green" : "text-rose-400"}`}>
+            {metrics.netDailyWh > 0 ? "+" : ""}{metrics.netDailyWh} Wh
           </div>
-          <span className={`text-xs font-bold font-mono ${metrics.isNetPositive ? "text-emerald-400" : "text-rose-400"}`}>
-            {metrics.isNetPositive ? "● Infinite Self-Sustaining" : "● Daily Deficit Warning"}
-          </span>
+          <span className="text-[11px] text-gray-500">{metrics.isNetPositive ? "Indefinite Run-time ✓" : "Net Deficit"}</span>
         </div>
 
-        <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Solar Generation Harvest</span>
-          <div className="text-2xl font-black text-yellow-400 font-mono">{metrics.dailySolarWhHarvested} Wh/day</div>
-          <span className="text-xs text-gray-400 font-mono">From {solarPanelWatts}W Array @ {peakSunHours} PSH</span>
-        </div>
-
-        <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Total Daily Consumption</span>
-          <div className="text-2xl font-black text-cyan-400 font-mono">{metrics.totalDailyWhConsumed} Wh/day</div>
-          <span className="text-xs text-gray-400 font-mono">{dailyActiveHours}h Active · {24 - dailyActiveHours}h Standby</span>
-        </div>
-
-        <div className="p-4 rounded-xl border border-gray-800 bg-gray-900/80 space-y-2">
-          <span className="text-[10px] font-mono text-gray-400 block uppercase font-bold">Zero-Sun Autonomy Reserve</span>
-          <div className="text-2xl font-black text-neon-green font-mono">{metrics.daysOfAutonomy} Days</div>
-          <span className="text-xs text-gray-400 font-mono">Usable: {metrics.usablePackCapacityWh} Wh ({chemistry.name.split(" ")[0]})</span>
+        <div className="p-5 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-1 shadow-xl">
+          <span className="text-[10px] text-gray-400 uppercase font-bold">Autonomy Reserve</span>
+          <div className="text-2xl font-black text-cyan-400">{metrics.daysOfAutonomy} Days</div>
+          <span className="text-[11px] text-gray-500">Zero-Sun Reserve ({metrics.usablePackCapacityWh} Wh)</span>
         </div>
       </div>
 
-      {/* Main Configuration Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left: Input Controls */}
-        <div className="lg:col-span-6 space-y-6">
-          {/* 1. Deck Power Demand */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Zap className="w-4 h-4 text-neon-green" />
-              1. Cyberdeck Power Profile
-            </h3>
-
-            <div className="space-y-3">
-              <div>
-                <div className="flex justify-between text-xs font-mono text-gray-300 mb-1">
-                  <span>Active Workload Power Draw</span>
-                  <span className="text-neon-green font-bold">{deckActivePowerW} Watts</span>
-                </div>
-                <input
-                  type="range"
-                  min={2}
-                  max={25}
-                  step={0.5}
-                  value={deckActivePowerW}
-                  onChange={(e) => {
-                    soundFx.playClick();
-                    setDeckActivePowerW(Number(e.target.value));
-                  }}
-                  className="w-full accent-neon-green cursor-pointer"
-                />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs font-mono text-gray-300 mb-1">
-                  <span>Active Operating Hours per Day</span>
-                  <span className="text-cyan-400 font-bold">{dailyActiveHours} Hours/day</span>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={24}
-                  value={dailyActiveHours}
-                  onChange={(e) => {
-                    soundFx.playClick();
-                    setDailyActiveHours(Number(e.target.value));
-                  }}
-                  className="w-full accent-cyan-400 cursor-pointer"
-                />
-              </div>
-            </div>
+      {/* 24-Hour Diurnal Solar Simulator Canvas */}
+      <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-5 shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-4">
+          <div>
+            <h2 className="text-sm font-bold text-white uppercase flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400" />
+              24-Hour Diurnal Irradiance & Battery SOC Curve
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Simulating hour {simulatedHour}:00 — Solar Generation: {currentHourPoint.solarW}W · Cyberdeck Load: {currentHourPoint.loadW}W · Battery: {currentHourPoint.batterySocPct}%
+            </p>
           </div>
 
-          {/* 2. Solar Array & Sun Hours */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Sun className="w-4 h-4 text-yellow-400" />
-              2. Solar Array & Geographic Insolation
-            </h3>
+          {/* Time Slider */}
+          <div className="flex items-center gap-3 bg-gray-950 px-4 py-2 rounded-2xl border border-gray-800">
+            <span className="text-xs font-bold text-amber-400">{simulatedHour.toString().padStart(2, "0")}:00</span>
+            <input
+              type="range"
+              min="0"
+              max="24"
+              value={simulatedHour}
+              onChange={(e) => setSimulatedHour(Number(e.target.value))}
+              className="w-32 h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+            />
+          </div>
+        </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="block font-mono text-gray-400 mb-1">Solar Panel Rating</label>
-                <select
-                  value={solarPanelWatts}
-                  onChange={(e) => {
-                    soundFx.playClick();
-                    setSolarPanelWatts(Number(e.target.value));
-                  }}
-                  className="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 font-mono text-yellow-300 font-bold"
-                >
-                  <option value={10}>10W (Ultra-Portable Backpack)</option>
-                  <option value={21}>21W (Folding 3-Panel Kit)</option>
-                  <option value={28}>28W (High-Efficiency USB-C)</option>
-                  <option value={50}>50W (Rigid Briefcase)</option>
-                  <option value={100}>100W (Basecamp Array)</option>
-                </select>
-              </div>
+        {/* SVG Curve Chart */}
+        <div className="h-44 w-full bg-gray-950 rounded-2xl border border-gray-800 p-3 relative flex items-end">
+          <svg className="w-full h-full overflow-visible" viewBox="0 0 240 100" preserveAspectRatio="none">
+            {/* Grid lines */}
+            <line x1="0" y1="25" x2="240" y2="25" stroke="#1e2638" strokeDasharray="3,3" />
+            <line x1="0" y1="50" x2="240" y2="50" stroke="#1e2638" strokeDasharray="3,3" />
+            <line x1="0" y1="75" x2="240" y2="75" stroke="#1e2638" strokeDasharray="3,3" />
 
-              <div>
-                <label className="block font-mono text-gray-400 mb-1">Charge Controller</label>
-                <select
-                  value={controllerType}
-                  onChange={(e) => {
-                    soundFx.playClick();
-                    setControllerType(e.target.value as any);
-                  }}
-                  className="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 font-mono text-cyan-300 font-bold"
-                >
-                  <option value="mppt">MPPT (95% Efficiency)</option>
-                  <option value="pwm">PWM (75% Efficiency)</option>
-                </select>
-              </div>
-            </div>
+            {/* Solar Generation Polyline (Amber) */}
+            <polyline
+              fill="none"
+              stroke="#f59e0b"
+              strokeWidth="2.5"
+              points={diurnalData.map((d) => `${d.hour * 10},${100 - (d.solarW / Math.max(1, solarPanelWatts)) * 90}`).join(" ")}
+            />
 
+            {/* Battery SOC Polyline (Neon Green) */}
+            <polyline
+              fill="none"
+              stroke="#00ff66"
+              strokeWidth="2.5"
+              points={diurnalData.map((d) => `${d.hour * 10},${100 - (d.batterySocPct / 100) * 90}`).join(" ")}
+            />
+
+            {/* Time Cursor Marker */}
+            <line
+              x1={simulatedHour * 10}
+              y1="0"
+              x2={simulatedHour * 10}
+              y2="100"
+              stroke="#00f3ff"
+              strokeWidth="2"
+              strokeDasharray="2,2"
+            />
+          </svg>
+
+          {/* Chart Legend */}
+          <div className="absolute top-3 right-4 flex items-center gap-4 text-[10px] font-bold bg-gray-900/90 px-3 py-1 rounded-xl border border-gray-800">
+            <span className="flex items-center gap-1.5 text-amber-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Solar Watts
+            </span>
+            <span className="flex items-center gap-1.5 text-neon-green">
+              <span className="w-2.5 h-2.5 rounded-full bg-neon-green" /> Battery SOC %
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Inputs Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Solar Harvester Config */}
+        <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-4 shadow-xl">
+          <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-2.5">
+            <Sun className="w-4 h-4 text-amber-400" />
+            Solar Harvester Specs
+          </h3>
+
+          <div className="space-y-3 text-xs">
             <div>
-              <div className="flex justify-between text-xs font-mono text-gray-300 mb-1">
-                <span>Peak Sun Hours (PSH / Day)</span>
-                <span className="text-yellow-400 font-bold">{peakSunHours} PSH</span>
+              <div className="flex justify-between text-gray-400 mb-1">
+                <span>Panel Rating:</span>
+                <span className="text-amber-400 font-bold">{solarPanelWatts}W</span>
               </div>
               <input
                 type="range"
-                min={2.0}
-                max={7.0}
-                step={0.5}
-                value={peakSunHours}
-                onChange={(e) => {
-                  soundFx.playClick();
-                  setPeakSunHours(Number(e.target.value));
-                }}
-                className="w-full accent-yellow-400 cursor-pointer"
+                min="5"
+                max="100"
+                step="5"
+                value={solarPanelWatts}
+                onChange={(e) => setSolarPanelWatts(Number(e.target.value))}
+                className="w-full h-1.5 bg-gray-950 rounded-lg appearance-none cursor-pointer accent-amber-400"
               />
-              <div className="flex justify-between text-[10px] text-gray-500 font-mono mt-1">
-                <span>Winter / Overcast (2.0)</span>
-                <span>Moderate (4.5)</span>
-                <span>Desert Summer (7.0)</span>
-              </div>
             </div>
-          </div>
-
-          {/* 3. Battery Storage */}
-          <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 space-y-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Battery className="w-4 h-4 text-purple-400" />
-              3. Battery Bank Chemistry & Capacity
-            </h3>
 
             <div>
-              <label className="block text-xs font-mono text-gray-400 mb-1.5">Battery Chemistry</label>
+              <label className="block text-gray-400 mb-1 font-bold">Charge Controller:</label>
+              <select
+                value={controllerType}
+                onChange={(e) => setControllerType(e.target.value as any)}
+                className="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-white font-bold focus:border-amber-400 focus:outline-none"
+              >
+                <option value="mppt">MPPT Synchronous (95% Efficiency)</option>
+                <option value="pwm">PWM Standard (75% Efficiency)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Battery Storage */}
+        <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-4 shadow-xl">
+          <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-2.5">
+            <Battery className="w-4 h-4 text-neon-green" />
+            Battery Bank Chemistry
+          </h3>
+
+          <div className="space-y-3 text-xs">
+            <div>
+              <label className="block text-gray-400 mb-1 font-bold">Chemistry:</label>
               <select
                 value={batteryChemistryId}
-                onChange={(e) => {
-                  soundFx.playClick();
-                  setBatteryChemistryId(e.target.value);
-                }}
-                className="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 text-xs text-purple-300 font-bold font-mono"
+                onChange={(e) => setBatteryChemistryId(e.target.value)}
+                className="w-full bg-gray-950 border border-gray-800 rounded-xl p-2.5 text-white font-bold focus:border-neon-green focus:outline-none"
               >
-                {BATTERY_CHEMISTRIES.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
+                {BATTERY_CHEMISTRIES.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <label className="block font-mono text-gray-400 mb-1">Cell Pack Capacity (mAh)</label>
-                <input
-                  type="number"
-                  step={1000}
-                  value={batteryCapacityMah}
-                  onChange={(e) => setBatteryCapacityMah(Number(e.target.value))}
-                  className="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 font-mono text-white"
-                />
+            <div>
+              <div className="flex justify-between text-gray-400 mb-1">
+                <span>Capacity:</span>
+                <span className="text-neon-green font-bold">{batteryCapacityMah} mAh</span>
               </div>
-              <div>
-                <label className="block font-mono text-gray-400 mb-1">Parallel Pack Count</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={4}
-                  value={batteryPacksParallel}
-                  onChange={(e) => setBatteryPacksParallel(Number(e.target.value))}
-                  className="w-full bg-gray-950 border border-gray-700 rounded-lg p-2 font-mono text-white"
-                />
-              </div>
+              <input
+                type="range"
+                min="3000"
+                max="50000"
+                step="1000"
+                value={batteryCapacityMah}
+                onChange={(e) => setBatteryCapacityMah(Number(e.target.value))}
+                className="w-full h-1.5 bg-gray-950 rounded-lg appearance-none cursor-pointer accent-neon-green"
+              />
             </div>
           </div>
         </div>
 
-        {/* Right: Energy Simulation & Markdown Report */}
-        <div className="lg:col-span-6 space-y-6">
-          <div className="bg-gray-900/80 border border-gray-800 rounded-xl p-5 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-              <h3 className="text-sm font-bold text-white font-mono uppercase">
-                Field Energy Audit Report
-              </h3>
-              <button
-                onClick={() => {
-                  soundFx.playConfirm();
-                  navigator.clipboard.writeText(markdownReport);
-                  setCopiedReport(true);
-                  setTimeout(() => setCopiedReport(false), 2000);
-                }}
-                className="px-2.5 py-1 rounded bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 font-mono flex items-center gap-1"
-              >
-                {copiedReport ? <Check className="w-3 h-3 text-neon-green" /> : <Copy className="w-3 h-3" />}
-                {copiedReport ? "Copied" : "Copy Markdown"}
-              </button>
+        {/* Environmental Derating */}
+        <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-4 shadow-xl">
+          <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2 border-b border-gray-800 pb-2.5">
+            <Thermometer className="w-4 h-4 text-cyan-400" />
+            Environmental Derating
+          </h3>
+
+          <div className="space-y-3 text-xs">
+            <div>
+              <div className="flex justify-between text-gray-400 mb-1">
+                <span>Ambient Temp:</span>
+                <span className={`font-bold ${ambientTempC < 0 ? "text-cyan-400" : "text-white"}`}>{ambientTempC}°C</span>
+              </div>
+              <input
+                type="range"
+                min="-20"
+                max="50"
+                value={ambientTempC}
+                onChange={(e) => setAmbientTempC(Number(e.target.value))}
+                className="w-full h-1.5 bg-gray-950 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+              />
             </div>
 
-            <pre className="p-4 bg-gray-950 rounded-xl border border-gray-800 text-xs font-mono text-gray-200 overflow-x-auto leading-relaxed max-h-[500px] select-all">
-              {markdownReport}
-            </pre>
+            {ambientTempC < 0 && (
+              <div className="p-2.5 bg-cyan-950/60 border border-cyan-500/40 rounded-xl text-[11px] text-cyan-300 flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span>Cold lockout active: Charge current derated to 50% to prevent lithium plating.</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
