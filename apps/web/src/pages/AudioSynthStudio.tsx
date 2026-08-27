@@ -64,6 +64,35 @@ export default function AudioSynthStudio() {
 
   const activeScale = SCALES[scaleKey] || SCALES.cyberpunk;
 
+  // Web MIDI Hardware Controller Support
+  const [midiDeviceName, setMidiDeviceName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && "requestMIDIAccess" in navigator) {
+      (navigator as any).requestMIDIAccess().then((midiAccess: any) => {
+        const updateMidiInputs = () => {
+          const inputs = Array.from(midiAccess.inputs.values()) as any[];
+          if (inputs.length > 0) {
+            setMidiDeviceName(inputs[0].name || "Physical MIDI Controller");
+            inputs[0].onmidimessage = (msg: any) => {
+              const [status, noteNumber, velocity] = msg.data;
+              // Note On (status 144) with velocity > 0
+              if ((status & 0xf0) === 0x90 && velocity > 0) {
+                const freq = 440 * Math.pow(2, (noteNumber - 69) / 12);
+                playFrequency(freq);
+              }
+            };
+          } else {
+            setMidiDeviceName(null);
+          }
+        };
+
+        updateMidiInputs();
+        midiAccess.onstatechange = updateMidiInputs;
+      }).catch(() => {});
+    }
+  }, [waveform]);
+
   const initAudio = () => {
     if (!audioCtxRef.current && typeof window !== "undefined") {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -145,9 +174,22 @@ export default function AudioSynthStudio() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-pink-500/10 text-pink-300 border border-pink-500/30 mb-2">
-            <Music className="w-3.5 h-3.5" />
-            I2S Audio DAC & Chiptune Polyphonic Synthesizer
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-pink-500/10 text-pink-300 border border-pink-500/30">
+              <Music className="w-3.5 h-3.5" />
+              I2S Audio DAC & Chiptune Polyphonic Synthesizer
+            </div>
+            {midiDeviceName ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-neon-green border border-neon-green/30">
+                <Activity className="w-3 h-3 animate-pulse" />
+                MIDI Hardware: {midiDeviceName} (Active)
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gray-950 text-gray-500 border border-gray-800">
+                <Disc className="w-3 h-3" />
+                Web MIDI Ready (Plug in USB Controller)
+              </div>
+            )}
           </div>
           <h1 className="text-3xl font-black text-white">Chiptune Audio Synth & Tracker Studio</h1>
           <p className="text-xs text-gray-400 mt-1">
