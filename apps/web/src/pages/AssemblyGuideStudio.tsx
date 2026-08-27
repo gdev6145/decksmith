@@ -30,6 +30,7 @@ import {
   Square,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
+import { useNotification } from "../NotificationContext";
 
 interface AssemblyStep {
   step: number;
@@ -160,6 +161,7 @@ const ASSEMBLY_STEPS: AssemblyStep[] = [
 ];
 
 export default function AssemblyGuideStudio() {
+  const { dispatchToast } = useNotification();
   const mountRef = useRef<HTMLDivElement>(null);
   const [activeStep, setActiveStep] = useState<number>(1);
   const [explosionRatio, setExplosionRatio] = useState<number>(45);
@@ -489,6 +491,11 @@ export default function AssemblyGuideStudio() {
     a.download = `decksmith-assembly-field-manual.md`;
     a.click();
     URL.revokeObjectURL(url);
+    dispatchToast({
+      type: "studio",
+      title: "📖 Assembly Field Manual Exported",
+      message: "Downloaded complete step-by-step mechanical stacking guide.",
+    });
   };
 
   return (
@@ -609,6 +616,25 @@ export default function AssemblyGuideStudio() {
 
         {/* Stepper Guide & Fastener Details (5 Cols) */}
         <div className="lg:col-span-5 space-y-4">
+          {/* Assembly Progress Meter */}
+          <div className="p-4 bg-gray-900/90 border border-gray-800 rounded-2xl space-y-2 shadow-xl">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-400 font-bold flex items-center gap-1.5">
+                <Hammer className="w-3.5 h-3.5 text-neon-green" />
+                Assembly Build Progress
+              </span>
+              <span className="font-mono font-bold text-neon-green">
+                {Math.round((completedSteps.size / ASSEMBLY_STEPS.length) * 100)}% Complete ({completedSteps.size}/{ASSEMBLY_STEPS.length} stages)
+              </span>
+            </div>
+            <div className="w-full h-2 bg-gray-950 rounded-full overflow-hidden border border-gray-800">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-neon-green transition-all duration-300 rounded-full"
+                style={{ width: `${(completedSteps.size / ASSEMBLY_STEPS.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
           {/* Active Step Card */}
           <div className="p-6 bg-gray-900/90 border border-gray-800 rounded-3xl space-y-5 shadow-xl">
             <div className="flex items-center justify-between border-b border-gray-800 pb-3">
