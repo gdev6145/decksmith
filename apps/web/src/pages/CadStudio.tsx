@@ -56,8 +56,11 @@ import {
   getComponentEffectiveDimensions,
 } from "../lib/cadEngine";
 import { Cad3DViewer } from "../components/Cad3DViewer";
+import { useNotification } from "../NotificationContext";
+import { soundFx } from "../lib/soundFx";
 
 export default function CadStudio() {
+  const { dispatchToast } = useNotification();
   const [searchParams] = useSearchParams();
   const initialCase = searchParams.get("chassis") || "pelican-1150-faceplate";
 
@@ -274,6 +277,7 @@ export default function CadStudio() {
   };
 
   const downloadFile = (filename: string, content: string, type: string) => {
+    soundFx.playConfirm();
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -282,6 +286,11 @@ export default function CadStudio() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    dispatchToast({
+      type: "studio",
+      title: "📐 CAD File Exported",
+      message: `Downloaded "${filename}" ready for 3D printing & CNC fabrication.`,
+    });
   };
 
   const exportProjectJson = () => {
