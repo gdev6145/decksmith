@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useNotification } from "../NotificationContext";
+import { soundFx } from "../lib/soundFx";
 import { Link } from "react-router-dom";
 import {
   HardDrive,
@@ -161,6 +163,7 @@ const DISPLAY_PRESETS: DisplayPreset[] = [
 ];
 
 export default function OsFlasherStudio() {
+  const { dispatchToast } = useNotification();
   const [selectedOsId, setSelectedOsId] = useState<string>("raspios-64-lite");
   const [selectedDisplayId, setSelectedDisplayId] = useState<string>("waveshare-11-9");
   const [displayRotation, setDisplayRotation] = useState<0 | 90 | 180 | 270>(270);
@@ -333,6 +336,7 @@ echo "✅ [DECKSMITH] Cyberdeck Provisioning Completed."
   }, [activeCodeTab, generatedConfigTxt, generatedCmdlineTxt, generatedCloudInit, generatedFirstBootScript]);
 
   const downloadFile = (filename: string, content: string, type: string) => {
+    soundFx.playConfirm();
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -341,12 +345,23 @@ echo "✅ [DECKSMITH] Cyberdeck Provisioning Completed."
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    dispatchToast({
+      type: "studio",
+      title: "💾 Provisioning File Exported",
+      message: `Downloaded "${filename}" for first-boot OS deployment.`,
+    });
   };
 
   const handleCopyCode = () => {
+    soundFx.playConfirm();
     navigator.clipboard.writeText(activeCodeContent);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
+    dispatchToast({
+      type: "info",
+      title: "📋 Config Copied",
+      message: "First-boot provisioning configuration copied to clipboard.",
+    });
   };
 
   return (
