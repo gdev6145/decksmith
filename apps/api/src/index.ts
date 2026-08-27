@@ -10,6 +10,7 @@ import sessionsRoutes from "./routes/sessions.js";
 import scrapeRoutes from "./routes/scrape.js";
 import authRoutes from "./routes/auth.js";
 import alertsRoutes from "./routes/alerts.js";
+import telemetryRoutes from "./routes/telemetry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -47,6 +48,7 @@ app.use("/api", chatRoutes);
 app.use("/api", partsRoutes);
 app.use("/api", sessionsRoutes);
 app.use("/api", scrapeRoutes);
+app.use("/api", telemetryRoutes);
 app.use("/api/alerts", alertsRoutes);
 
 app.get("/health", (_req, res) => {

@@ -109,29 +109,80 @@ export default function FieldDiagnosticsStudio() {
   // Active Tab
   const [activeTab, setActiveTab] = useState<"hud" | "i2c" | "lora" | "selftest" | "daemon">("hud");
 
-  // Dynamic Telemetry Simulation Loop
+  // Real Hardware Bridge & Live Sensor Polling
+  const [isLiveHardware, setIsLiveHardware] = useState<boolean>(true);
+  const [hostPlatform, setHostPlatform] = useState<string>("Local Station");
+  const [hostCores, setHostCores] = useState<number>(4);
+
+  // 1. Browser Battery API (Real Hardware)
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && "getBattery" in navigator) {
+      (navigator as any).getBattery().then((battery: any) => {
+        const updateBattery = () => {
+          setBatteryPercent(Math.round(battery.level * 100));
+          setBatteryVoltageV(battery.charging ? 4.15 : 3.85);
+        };
+        updateBattery();
+        battery.addEventListener("levelchange", updateBattery);
+        battery.addEventListener("chargingchange", updateBattery);
+      }).catch(() => {});
+    }
+  }, []);
+
+  // 2. Browser Device Orientation & Gyroscope (Real Hardware)
+  useEffect(() => {
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (e.beta !== null) setPitchDeg(Math.round(e.beta * 10) / 10);
+      if (e.gamma !== null) setRollDeg(Math.round(e.gamma * 10) / 10);
+      if (e.alpha !== null) setHeadingDeg(Math.round(e.alpha));
+    };
+
+    if (typeof window !== "undefined" && "DeviceOrientationEvent" in window) {
+      window.addEventListener("deviceorientation", handleOrientation);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("deviceorientation", handleOrientation);
+      }
+    };
+  }, []);
+
+  // 3. Real Host System Telemetry API Polling
   useEffect(() => {
     if (!isRunningSim) return;
 
-    const interval = setInterval(() => {
-      // Simulate CPU fluctuation
-      setCpuUsage((prev) => Math.max(10, Math.min(95, Math.round(prev + (Math.random() * 12 - 6)))));
-      setCpuTempC((prev) => Number(Math.max(38, Math.min(78, prev + (Math.random() * 0.8 - 0.4))).toFixed(1)));
-      setCpuFreqMhz((prev) => (Math.random() > 0.5 ? 2400 : 1800));
+    const fetchLiveTelemetry = async () => {
+      try {
+        const res = await fetch("/api/system-telemetry");
+        if (res.ok) {
+          const data = await res.json();
+          setIsLiveHardware(true);
+          setHostPlatform(`${data.hostname} (${data.platform} ${data.arch})`);
+          if (data.cpu) {
+            setCpuFreqMhz(data.cpu.speedMhz || 2400);
+            setHostCores(data.cpu.cores || 4);
+            const loadPercent = Math.min(100, Math.round((data.cpu.load1m / (data.cpu.cores || 1)) * 100));
+            setCpuUsage(Math.max(5, loadPercent));
+            if (data.cpu.tempC) setCpuTempC(data.cpu.tempC);
+          }
+          if (data.memory) {
+            setRamUsedMb(data.memory.usedMb);
+          }
+          if (data.battery && data.battery.percent !== null) {
+            setBatteryPercent(data.battery.percent);
+          }
+        } else {
+          setIsLiveHardware(false);
+        }
+      } catch {
+        setIsLiveHardware(false);
+      }
+    };
 
-      // Simulate Power fluctuation
-      setCurrentDrawA((prev) => Number(Math.max(0.6, Math.min(2.8, prev + (Math.random() * 0.1 - 0.05))).toFixed(2)));
-      setBatteryVoltageV((prev) => Number(Math.max(3.3, Math.min(4.2, prev - 0.0001)).toFixed(2)));
-      setPowerWatts((prev) => Number((batteryVoltageV * currentDrawA).toFixed(2)));
-
-      // Simulate IMU motion
-      setHeadingDeg((prev) => (prev + 1) % 360);
-      setPitchDeg((prev) => Number((prev + (Math.random() * 0.4 - 0.2)).toFixed(1)));
-      setRollDeg((prev) => Number((prev + (Math.random() * 0.4 - 0.2)).toFixed(1)));
-    }, 1500);
-
+    fetchLiveTelemetry();
+    const interval = setInterval(fetchLiveTelemetry, 2000);
     return () => clearInterval(interval);
-  }, [isRunningSim, batteryVoltageV, currentDrawA]);
+  }, [isRunningSim]);
 
   const handleRunSelfTest = () => {
     soundFx.playScanBeep();
