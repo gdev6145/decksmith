@@ -24,6 +24,7 @@ import {
   Terminal,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
+import { useNotification } from "../NotificationContext";
 
 interface PinDef {
   pin: number;
@@ -78,6 +79,7 @@ const RPI_40_PINS: PinDef[] = [
 ];
 
 export default function PinoutStudio() {
+  const { dispatchToast } = useNotification();
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedPin, setSelectedPin] = useState<PinDef>(RPI_40_PINS[2]);
@@ -209,6 +211,11 @@ if __name__ == "__main__":
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    dispatchToast({
+      type: "studio",
+      title: "💾 Pinout File Exported",
+      message: `Downloaded "${filename}" for hardware integration.`,
+    });
   };
 
   return (
