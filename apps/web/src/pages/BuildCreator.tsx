@@ -216,6 +216,28 @@ export default function BuildCreator() {
           setAllParts(data);
 
           const params = new URLSearchParams(window.location.search);
+          if (params.get("title")) setTitle(params.get("title")!);
+          if (params.get("type")) setBuildType(params.get("type")!);
+
+          // Check direct slot query params
+          const slotKeys: (keyof SelectedSlots)[] = ["sbc", "display", "keyboard", "battery", "storage", "network", "sensor", "chassis", "audio", "cooling"];
+          const urlSlots: SelectedSlots = {};
+          let hasUrlSlots = false;
+          for (const k of slotKeys) {
+            const slug = params.get(k);
+            if (slug) {
+              const matched = data.find((p) => p.slug === slug);
+              if (matched) {
+                urlSlots[k] = matched;
+                hasUrlSlots = true;
+              }
+            }
+          }
+          if (hasUrlSlots) {
+            setSelectedSlots(urlSlots);
+            return;
+          }
+
           const forkSlug = params.get("fork");
           if (forkSlug) {
             try {
@@ -685,6 +707,91 @@ echo "✅ Decksmith provisioning complete. Rebooting system in 5s..."
     }));
   };
 
+  const handleExportBOM = (format: "csv" | "json" | "md") => {
+    soundFx.playConfirm();
+    const parts = selectedPartsList;
+
+    if (format === "csv") {
+      let csv = "Category,Component Name,Slug,Best Price ($),Vendor\n";
+      parts.forEach((p) => {
+        const price = p.prices?.[0]?.price || 0;
+        const vendor = p.prices?.[0]?.source || "N/A";
+        csv += `"${p.category}","${p.name.replace(/"/g, '""')}","${p.slug}",${price},"${vendor}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}-bom.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === "json") {
+      const jsonStr = JSON.stringify(
+        {
+          title,
+          type: buildType,
+          totalCost,
+          components: parts.map((p) => ({
+            category: p.category,
+            name: p.name,
+            slug: p.slug,
+            price: p.prices?.[0]?.price || 0,
+            vendor: p.prices?.[0]?.source || "N/A",
+          })),
+        },
+        null,
+        2
+      );
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}-bom.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } else if (format === "md") {
+      let md = `# Bill of Materials: ${title}\n\n`;
+      md += `**Archetype:** ${buildType} | **Estimated Total:** $${totalCost.toFixed(2)}\n\n`;
+      md += `| Category | Part Name | Price | Source |\n`;
+      md += `| :--- | :--- | :--- | :--- |\n`;
+      parts.forEach((p) => {
+        const price = p.prices?.[0]?.price ? `$${p.prices[0].price.toFixed(2)}` : "TBD";
+        const vendor = p.prices?.[0]?.source || "N/A";
+        md += `| ${p.category} | ${p.name} | ${price} | ${vendor} |\n`;
+      });
+      const blob = new Blob([md], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}-bom.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    dispatchToast({
+      type: "studio",
+      title: "📦 Bill of Materials Exported",
+      message: `Downloaded BOM for "${title}" in .${format.toUpperCase()} format.`,
+    });
+  };
+
+  const handleShareLink = () => {
+    soundFx.playConfirm();
+    const params = new URLSearchParams();
+    params.set("title", title);
+    params.set("type", buildType);
+    for (const [slot, part] of Object.entries(selectedSlots)) {
+      if (part?.slug) params.set(slot, part.slug);
+    }
+    const shareUrl = `${window.location.origin}/builder?${params.toString()}`;
+    navigator.clipboard.writeText(shareUrl);
+    dispatchToast({
+      type: "badge",
+      title: "🔗 Share Link Copied",
+      message: "Direct BOM blueprint link copied to clipboard.",
+    });
+  };
+
   const handlePublishBuild = async () => {
     if (!title.trim() || !buildType) return;
     setIsPublishing(true);
@@ -908,12 +1015,29 @@ echo "✅ Decksmith provisioning complete. Rebooting system in 5s..."
             CAD Standoffs
           </Link>
           <button
-            onClick={downloadBOM}
+            onClick={handleShareLink}
+            disabled={selectedPartsList.length === 0}
+            className="px-3.5 py-2 rounded-lg border border-neon-green/40 bg-emerald-950/40 hover:bg-emerald-900/60 text-neon-green text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            title="Copy shareable direct blueprint link"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            Share Link
+          </button>
+          <button
+            onClick={() => handleExportBOM("csv")}
             disabled={selectedPartsList.length === 0}
             className="px-3.5 py-2 rounded-lg border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5" />
             BOM CSV
+          </button>
+          <button
+            onClick={() => handleExportBOM("md")}
+            disabled={selectedPartsList.length === 0}
+            className="px-3.5 py-2 rounded-lg border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-400 text-xs font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+          >
+            <FileCode className="w-3.5 h-3.5" />
+            BOM MD
           </button>
           <button
             onClick={handleWatchAllBlueprintParts}
