@@ -72,9 +72,28 @@ router.get("/user", async (_req, res) => {
   }
 });
 
+router.patch("/users/:id", async (req, res) => {
+  try {
+    const { name, email, avatar, role } = req.body as { name?: string; email?: string; avatar?: string; role?: string };
+    const updated = await prisma.user.update({
+      where: { id: req.params.id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email }),
+        ...(avatar !== undefined && { avatar }),
+        ...(role !== undefined && { role }),
+      },
+    });
+    res.json(updated);
+  } catch (error) {
+    console.error("Update user by ID error:", error);
+    res.status(500).json({ error: "Failed to update user profile" });
+  }
+});
+
 router.patch("/user", async (req, res) => {
   try {
-    const { name, email } = req.body as { name?: string; email?: string };
+    const { name, email, avatar, role } = req.body as { name?: string; email?: string; avatar?: string; role?: string };
     let user = await prisma.user.findUnique({ where: { email: "guest@decksmith.local" } });
     if (!user) {
       user = await prisma.user.create({ data: { email: "guest@decksmith.local", name: "Guest" } });
@@ -84,6 +103,8 @@ router.patch("/user", async (req, res) => {
       data: {
         ...(name !== undefined && { name }),
         ...(email !== undefined && { email }),
+        ...(avatar !== undefined && { avatar }),
+        ...(role !== undefined && { role }),
       },
     });
     res.json(updated);
@@ -97,7 +118,7 @@ router.get("/users/:id", async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
-      select: { id: true, name: true, avatar: true, createdAt: true },
+      select: { id: true, name: true, email: true, avatar: true, role: true, createdAt: true },
     });
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 

@@ -15,10 +15,11 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (emailOrName: string) => Promise<boolean>;
-  register: (name: string, email: string, role?: string) => Promise<boolean>;
+  login: (emailOrName: string, password?: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password?: string, role?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   quickSwitchBuilder: (builder: UserProfile) => Promise<void>;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<boolean>;
   showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
 }
@@ -58,22 +59,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     fetchMe();
   }, [token]);
 
-  const login = async (emailOrName: string): Promise<boolean> => {
+  const login = async (emailOrName: string, password?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: emailOrName.includes("@") ? emailOrName : undefined,
-          name: !emailOrName.includes("@") ? emailOrName : undefined,
+          email: emailOrName.includes("@") ? emailOrName.trim() : undefined,
+          name: !emailOrName.includes("@") ? emailOrName.trim() : undefined,
+          password: password || undefined,
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
+      const data = await res.json();
+      if (res.ok && data.token) {
         setUser(data.user);
         setToken(data.token);
         localStorage.setItem("ds_auth_token", data.token);
+        soundFx.playConfirm();
+        return { success: true };
+      }
+      return { success: false, error: data.error || "Authentication failed" };
+    } catch {
+      return { success: false, error: "Cannot connect to auth gateway" };
+    }
+  };
+
+  const register = async (name: string, email: string, password?: string, role?: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim() || undefined,
+          password: password || "decksmith2026",
+          role: role || "Hardware Hacker",
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.token) {
+        setUser(data.user);
+        setToken(data.token);
+        localStorage.setItem("ds_auth_token", data.token);
+        soundFx.playConfirm();
+        return { success: true };
+      }
+      return { success: false, error: data.error || "Registration failed" };
+    } catch {
+      return { success: false, error: "Cannot connect to auth gateway" };
+    }
+  };
+
+  const updateUserProfile = async (updates: Partial<UserProfile>): Promise<boolean> => {
+    if (!user) return false;
+    try {
+      const res = await fetch(`${API_URL}/api/users/${user.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setUser((prev) => (prev ? { ...prev, ...updated } : updated));
         soundFx.playConfirm();
         return true;
       }
@@ -83,25 +136,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (name: string, email: string, role?: string): Promise<boolean> => {
+  const quickSwitchBuilder = async (builder: UserProfile) => {
+    setUser(builder);
+    soundFx.playConfirm();
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, role }),
+        body: JSON.stringify({ email: builder.email }),
       });
-
       if (res.ok) {
         const data = await res.json();
-        setUser(data.user);
-        setToken(data.token);
-        localStorage.setItem("ds_auth_token", data.token);
-        soundFx.playConfirm();
-        return true;
+        if (data.token) {
+          setToken(data.token);
+          localStorage.setItem("ds_auth_token", data.token);
+        }
       }
-      return false;
     } catch {
-      return false;
+      // ignore
     }
   };
 
@@ -110,29 +162,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setToken(null);
     localStorage.removeItem("ds_auth_token");
-    // Switch to clean guest session
-    login("Guest Builder");
   };
-
-  const quickSwitchBuilder = async (builder: UserProfile) => {
-    soundFx.playConfirm();
-    await login(builder.email || builder.name);
-    setShowAuthModal(false);
-  };
-
-  const isAuthenticated = !!user && user.email !== "guest@decksmith.local";
 
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
-        isAuthenticated,
+        isAuthenticated: !!user && user.email !== "guest@decksmith.local",
         isLoading,
         login,
         register,
         logout,
         quickSwitchBuilder,
+        updateUserProfile,
         showAuthModal,
         setShowAuthModal,
       }}

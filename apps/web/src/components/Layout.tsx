@@ -61,8 +61,17 @@ export default function Layout() {
   const location = useLocation();
   const { theme } = useTheme();
   const { user, token, isAuthenticated, logout, setShowAuthModal } = useAuth();
-  const { dispatchToast, requestDesktopPermission, hasDesktopPermission } = useNotification();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAllNotifications,
+    dispatchToast,
+    requestDesktopPermission,
+    hasDesktopPermission,
+  } = useNotification();
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "studio" | "hardware" | "security">("all");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -71,7 +80,6 @@ export default function Layout() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [isSoundOn, setIsSoundOn] = useState(soundFx.isEnabled());
-  const [notifications, setNotifications] = useState<Array<{ id: string; type: string; title: string; message: string; read: boolean; url: string | null; createdAt: string }>>([]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -93,40 +101,8 @@ export default function Layout() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const fetchNotifications = async () => {
-    try {
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      const res = await fetch(`${API_URL}/api/notifications`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unreadCount || 0);
-      }
-    } catch {
-      // ignore
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 25000);
-    return () => clearInterval(interval);
-  }, [token]);
-
-  const markAllRead = async () => {
-    soundFx.playConfirm();
-    try {
-      const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
-
-      await fetch(`${API_URL}/api/notifications/mark-read`, { method: "POST", headers });
-      setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    } catch {
-      // ignore
-    }
+  const markAllRead = () => {
+    markAllAsRead();
   };
 
   const getNotificationBadge = (type: string) => {
@@ -144,9 +120,9 @@ export default function Layout() {
 
   const filteredNotifications = notifications.filter((n) => {
     if (activeFilter === "all") return true;
-    if (activeFilter === "studio") return n.type === "new_studio";
-    if (activeFilter === "hardware") return n.type === "new_part";
-    if (activeFilter === "security") return n.type === "security_update";
+    if (activeFilter === "studio") return n.type === "studio";
+    if (activeFilter === "hardware") return n.type === "price_drop";
+    if (activeFilter === "security") return n.type === "hazard";
     return true;
   });
 
@@ -372,6 +348,15 @@ export default function Layout() {
                             Mark Read
                           </button>
                         )}
+                        {notifications.length > 0 && (
+                          <button
+                            onClick={clearAllNotifications}
+                            className="text-[10px] text-gray-400 hover:text-rose-400 font-bold mr-1 transition-colors"
+                            title="Delete All Notifications"
+                          >
+                            Clear
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setShowNotifications(false);
@@ -432,12 +417,10 @@ export default function Layout() {
                           const badge = getNotificationBadge(n.type);
                           const BadgeIcon = badge.icon;
                           return (
-                            <Link
+                            <div
                               key={n.id}
-                              to={n.url || "#"}
-                              onClick={() => setShowNotifications(false)}
-                              className={`block p-3.5 hover:bg-gray-800/50 transition-all ${
-                                !n.read ? "bg-gray-950/90 border-l-2 border-l-neon-green" : "bg-gray-900/40"
+                              className={`p-3.5 hover:bg-gray-800/50 transition-all relative group ${
+                                !n.read ? "bg-gray-950/90 border-l-2 border-l-neon-green" : "bg-gray-900/40 opacity-75"
                               }`}
                             >
                               <div className="flex items-center justify-between gap-2 mb-1">
@@ -445,25 +428,47 @@ export default function Layout() {
                                   <BadgeIcon className="w-3 h-3" />
                                   {badge.label}
                                 </span>
-                                <span className="text-[9px] text-gray-500">
-                                  {new Date(n.createdAt).toLocaleDateString()}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] text-gray-500">
+                                    {n.timestamp}
+                                  </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      deleteNotification(n.id);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-rose-400 transition-opacity"
+                                    title="Delete Notification"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
-                              <p className="text-xs font-bold text-white hover:text-neon-green transition-colors">
-                                {n.title}
-                              </p>
-                              <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
-                                {n.message}
-                              </p>
+                              <Link
+                                to={n.url || "#"}
+                                onClick={() => {
+                                  markAsRead(n.id);
+                                  setShowNotifications(false);
+                                }}
+                                className="block"
+                              >
+                                <p className="text-xs font-bold text-white hover:text-neon-green transition-colors">
+                                  {n.title}
+                                </p>
+                                <p className="text-[11px] text-gray-400 mt-1 line-clamp-2 leading-relaxed">
+                                  {n.message}
+                                </p>
 
-                              {n.url && (
-                                <div className="mt-2 text-[10px] text-neon-green font-bold flex items-center gap-1">
-                                  <span>Launch Studio / Component</span>
-                                  <ArrowRight className="w-3 h-3" />
-                                </div>
-                              )}
-                            </Link>
+                                {n.url && (
+                                  <div className="mt-2 text-[10px] text-neon-green font-bold flex items-center gap-1">
+                                    <span>Launch Studio / Component</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </div>
+                                )}
+                              </Link>
+                            </div>
                           );
                         })
                       ) : (

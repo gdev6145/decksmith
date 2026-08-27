@@ -63,26 +63,13 @@ export default function AuthModal() {
     setErrorMessage("");
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: emailOrName.includes("@") ? emailOrName.trim() : undefined,
-          name: !emailOrName.includes("@") ? emailOrName.trim() : undefined,
-          password: password || undefined,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem("ds_auth_token", data.token);
-        soundFx.playConfirm();
+      const result = await login(emailOrName, password);
+      if (result.success) {
         setShowAuthModal(false);
         setEmailOrName("");
         setPassword("");
-        window.location.reload();
       } else {
-        setErrorMessage(data.error || "Authentication signature rejected.");
+        setErrorMessage(result.error || "Authentication signature rejected.");
       }
     } catch {
       setErrorMessage("Could not connect to authentication gateway.");
@@ -99,28 +86,14 @@ export default function AuthModal() {
     setErrorMessage("");
 
     try {
-      const res = await fetch(`${API_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: regName.trim(),
-          email: regEmail.trim() || undefined,
-          role: regRole,
-          password: regPassword || "decksmith2026",
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem("ds_auth_token", data.token);
-        soundFx.playConfirm();
+      const result = await register(regName, regEmail, regPassword, regRole);
+      if (result.success) {
         setShowAuthModal(false);
         setRegName("");
         setRegEmail("");
         setRegPassword("");
-        window.location.reload();
       } else {
-        setErrorMessage(data.error || "Registration rejected.");
+        setErrorMessage(result.error || "Registration rejected.");
       }
     } catch {
       setErrorMessage("Could not connect to registration gateway.");

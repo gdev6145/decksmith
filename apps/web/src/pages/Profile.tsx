@@ -1,7 +1,25 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { User, Calendar, Wrench, MessageSquare, Star, ShieldCheck, Sparkles, Trophy, Cpu, Zap, ArrowRight, ExternalLink } from "lucide-react";
+import {
+  User,
+  Calendar,
+  Wrench,
+  MessageSquare,
+  Star,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  Cpu,
+  Zap,
+  ArrowRight,
+  ExternalLink,
+  Edit3,
+  Check,
+  X,
+  RefreshCw,
+} from "lucide-react";
 import { API_URL } from "../lib/config";
+import { useAuth } from "../AuthContext";
 import { soundFx } from "../lib/soundFx";
 
 interface UserProfile {
@@ -24,16 +42,38 @@ interface UserBuild {
   createdAt: string;
 }
 
+const SPECIALIZATIONS = [
+  "Hardware Hacker & Cyberdeck Architect",
+  "Field Recon & LoRa Mesh Specialist",
+  "RISC-V Kernel & Firmware Engineer",
+  "3D CAD & CNC Wedge Fabricator",
+  "Solar & Off-Grid Energy Engineer",
+  "SDR & Tactical SIGINT Netrunner",
+];
+
 export default function Profile() {
   const { id, userId } = useParams<{ id?: string; userId?: string }>();
-  const targetId = userId || id || "operative-1";
+  const { user: currentUser, updateUserProfile } = useAuth();
+  const targetId = userId || id || (currentUser ? currentUser.id : "operative-1");
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [builds, setBuilds] = useState<UserBuild[]>([]);
   const [stats, setStats] = useState({ totalBuilds: 0, totalReviews: 0, totalComments: 0 });
   const [loading, setLoading] = useState(true);
 
+  // Edit Mode State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState("");
+  const [editAvatarSeed, setEditAvatarSeed] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const isOwner = currentUser && profile && (currentUser.id === profile.id || currentUser.name === profile.name);
+
   useEffect(() => {
     const fetchProfile = async () => {
+      setLoading(true);
       try {
         const res = await fetch(`${API_URL}/api/users/${targetId}`);
         if (res.ok) {
@@ -41,30 +81,74 @@ export default function Profile() {
           setProfile(data.user);
           setBuilds(data.builds || []);
           setStats(data.stats || { totalBuilds: data.builds?.length || 0, totalReviews: 0, totalComments: 0 });
+          setEditName(data.user.name || "");
+          setEditRole(data.user.role || SPECIALIZATIONS[0]);
+          setEditAvatarSeed(data.user.name || "operative");
         } else {
           // Fallback demo operative profile
-          setProfile({
+          const fallbackUser = {
             id: targetId,
             name: "Operative " + targetId.slice(0, 6),
             avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${targetId}`,
-            role: "Field Hardware Operative",
+            role: "Hardware Hacker & Cyberdeck Architect",
             createdAt: new Date().toISOString(),
-          });
+          };
+          setProfile(fallbackUser);
+          setEditName(fallbackUser.name);
+          setEditRole(fallbackUser.role);
+          setEditAvatarSeed(fallbackUser.name);
         }
       } catch {
-        setProfile({
+        const fallbackUser = {
           id: targetId,
           name: "Operative " + targetId.slice(0, 6),
           avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${targetId}`,
-          role: "Field Hardware Operative",
+          role: "Hardware Hacker & Cyberdeck Architect",
           createdAt: new Date().toISOString(),
-        });
+        };
+        setProfile(fallbackUser);
+        setEditName(fallbackUser.name);
+        setEditRole(fallbackUser.role);
+        setEditAvatarSeed(fallbackUser.name);
       } finally {
         setLoading(false);
       }
     };
     fetchProfile();
-  }, [id]);
+  }, [targetId]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+    setIsSaving(true);
+    soundFx.playScanBeep();
+
+    const newAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(editAvatarSeed || editName)}`;
+    const updates = {
+      name: editName.trim() || profile.name || "Operative",
+      role: editRole,
+      avatar: newAvatar,
+    };
+
+    try {
+      const ok = await updateUserProfile(updates);
+      if (ok || isOwner) {
+        setProfile((prev) => (prev ? { ...prev, ...updates } : null));
+        setSaveSuccess(true);
+        soundFx.playConfirm();
+        setTimeout(() => {
+          setSaveSuccess(false);
+          setIsEditing(false);
+        }, 1200);
+      }
+    } catch {
+      // fallback local update
+      setProfile((prev) => (prev ? { ...prev, ...updates } : null));
+      setIsEditing(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -87,11 +171,25 @@ export default function Profile() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-          <img
-            src={avatar}
-            alt={name}
-            className="w-24 h-24 rounded-2xl bg-gray-950 border-2 border-neon-green/40 shadow-lg shadow-neon-green/20"
-          />
+          <div className="relative group">
+            <img
+              src={avatar}
+              alt={name}
+              className="w-24 h-24 rounded-2xl bg-gray-950 border-2 border-neon-green/40 shadow-lg shadow-neon-green/20"
+            />
+            {isOwner && !isEditing && (
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  setIsEditing(true);
+                }}
+                className="absolute -bottom-2 -right-2 p-1.5 rounded-xl bg-neon-green text-black font-bold shadow-md hover:scale-105 transition-transform"
+                title="Edit Dossier"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
           <div className="space-y-2 flex-1">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -100,6 +198,18 @@ export default function Profile() {
                 <ShieldCheck className="w-3.5 h-3.5" />
                 VERIFIED OPERATIVE
               </span>
+              {isOwner && !isEditing && (
+                <button
+                  onClick={() => {
+                    soundFx.playClick();
+                    setIsEditing(true);
+                  }}
+                  className="px-3 py-1 rounded-xl bg-gray-800 hover:bg-gray-700 text-xs text-gray-200 border border-gray-700 flex items-center gap-1.5 transition-all"
+                >
+                  <Edit3 className="w-3 h-3 text-neon-green" />
+                  <span>Edit Callsign</span>
+                </button>
+              )}
             </div>
 
             <p className="text-xs text-cyan-400 font-bold">
@@ -118,6 +228,87 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {/* In-Place Dossier Editor */}
+        {isEditing && (
+          <form
+            onSubmit={handleSaveProfile}
+            className="mt-6 pt-6 border-t border-gray-800/90 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in"
+          >
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Operative Callsign</label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-gray-950 border border-gray-700 text-white text-xs font-mono focus:border-neon-green outline-none"
+                placeholder="Enter Callsign"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Specialization Role</label>
+              <select
+                value={editRole}
+                onChange={(e) => setEditRole(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-gray-950 border border-gray-700 text-white text-xs font-mono focus:border-neon-green outline-none"
+              >
+                {SPECIALIZATIONS.map((spec) => (
+                  <option key={spec} value={spec} className="bg-gray-900 text-white">
+                    {spec}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-300 mb-1.5">Bottts Avatar Custom Seed</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={editAvatarSeed}
+                  onChange={(e) => setEditAvatarSeed(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-gray-950 border border-gray-700 text-white text-xs font-mono focus:border-neon-green outline-none"
+                  placeholder="Avatar Seed Keyword"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFx.playClick();
+                    setEditAvatarSeed("seed-" + Math.random().toString(36).substring(2, 7));
+                  }}
+                  className="px-3 py-2 rounded-xl bg-gray-800 text-gray-300 text-xs hover:bg-gray-700 shrink-0"
+                  title="Randomize Avatar Seed"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-end gap-2">
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-4 py-2 bg-neon-green text-black font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-lg shadow-neon-green/20"
+              >
+                {saveSuccess ? <Check className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+                <span>{isSaving ? "Updating..." : saveSuccess ? "Saved!" : "Save Changes"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  soundFx.playClick();
+                  setIsEditing(false);
+                }}
+                className="px-3 py-2 bg-gray-800 text-gray-300 hover:text-white rounded-xl text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Operative Stats & Badges */}
