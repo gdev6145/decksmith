@@ -24,6 +24,7 @@ import {
   Server,
   Layers,
 } from "lucide-react";
+import { soundFx } from "../lib/soundFx";
 
 interface I2cDevice {
   address: string;
@@ -133,8 +134,10 @@ export default function FieldDiagnosticsStudio() {
   }, [isRunningSim, batteryVoltageV, currentDrawA]);
 
   const handleRunSelfTest = () => {
+    soundFx.playScanBeep();
     setSelfTestRunning(true);
     setTimeout(() => {
+      soundFx.playConfirm();
       setSelfTestResults([
         { name: "CPU Thermal Throttle Threshold", status: "PASS", latencyMs: 2, details: `${cpuTempC}°C (Safe limit: 80°C)` },
         { name: "I2C Bus 1 Interface (/dev/i2c-1)", status: "PASS", latencyMs: 3, details: "5/5 devices responding (100kHz)" },
