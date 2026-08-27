@@ -21,6 +21,7 @@ import {
   Activity,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
+import { useNotification } from "../NotificationContext";
 
 interface LayoutPreset {
   id: string;
@@ -86,6 +87,7 @@ const LAYOUT_PRESETS: LayoutPreset[] = [
 ];
 
 export default function KeyboardMatrixStudio() {
+  const { dispatchToast } = useNotification();
   const [selectedLayoutId, setSelectedLayoutId] = useState<string>("ortho-40");
   const [switchType, setSwitchType] = useState<"choc_v1" | "cherry_mx" | "gateron_lp">("choc_v1");
   const [diodeDirection, setDiodeDirection] = useState<"COL2ROW" | "ROW2COL">("COL2ROW");
@@ -202,6 +204,11 @@ difference() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    dispatchToast({
+      type: "studio",
+      title: "⌨️ Keyboard Firmware Exported",
+      message: `Downloaded "${filename}" for flashing onto ${mcuTarget}.`,
+    });
   };
 
   return (
