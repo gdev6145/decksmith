@@ -23,6 +23,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
+import { useNotification } from "../NotificationContext";
 
 interface BatteryChemistry {
   id: string;
@@ -40,6 +41,7 @@ const BATTERY_CHEMISTRIES: BatteryChemistry[] = [
 ];
 
 export default function SolarEnergyStudio() {
+  const { dispatchToast } = useNotification();
   // Deck Consumption Inputs
   const [deckActivePowerW, setDeckActivePowerW] = useState<number>(6.5);
   const [dailyActiveHours, setDailyActiveHours] = useState<number>(8);
@@ -168,6 +170,11 @@ export default function SolarEnergyStudio() {
     a.download = "decksmith-solar-autonomy-report.md";
     a.click();
     URL.revokeObjectURL(url);
+    dispatchToast({
+      type: "studio",
+      title: "☀️ Solar Autonomy Report Exported",
+      message: "Downloaded complete off-grid power & battery discharge analysis.",
+    });
   };
 
   return (
