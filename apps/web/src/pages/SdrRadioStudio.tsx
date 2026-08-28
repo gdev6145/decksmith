@@ -24,6 +24,7 @@ import {
   Usb,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
+import { useNotification } from "../NotificationContext";
 
 interface FrequencyBand {
   id: string;
@@ -75,6 +76,7 @@ const FREQ_BANDS: FrequencyBand[] = [
 ];
 
 export default function SdrRadioStudio() {
+  const { dispatchToast } = useNotification();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [selectedBandId, setSelectedBandId] = useState<string>("meshtastic-us");
   const [gainDb, setGainDb] = useState<number>(38.0);
@@ -141,8 +143,14 @@ export default function SdrRadioStudio() {
       const device = await (navigator as any).usb.requestDevice({
         filters: [{ vendorId: 0x0bda }, { vendorId: 0x1d50 }], // RTL2832U, HackRF
       });
-      setWebUsbStatus(`Connected: ${device.productName || "SDR Device"}`);
+      const name = device.productName || "Physical SDR Hardware";
+      setWebUsbStatus(`Connected: ${name}`);
       soundFx.playConfirm();
+      dispatchToast({
+        type: "badge",
+        title: "⚡ WebUSB SDR Connected",
+        message: `Direct high-speed stream initialized with ${name}.`,
+      });
     } catch (err: any) {
       setWebUsbStatus(`WebUSB: ${err.message}`);
     }
@@ -216,6 +224,11 @@ export default function SdrRadioStudio() {
     a.download = `decksmith-gqrx-${selectedBand.id}.conf`;
     a.click();
     URL.revokeObjectURL(url);
+    dispatchToast({
+      type: "studio",
+      title: "📻 GQRX Config Exported",
+      message: `Exported SDR tuner configuration for ${selectedBand.name}.`,
+    });
   };
 
   return (
