@@ -1,21 +1,64 @@
 {
-  "name": "Decksmith",
+  "name": "Decksmith - Cyberdeck Studio",
   "short_name": "Decksmith",
-  "description": "The Cyberdeck Architecture, CAD & Telemetry Suite",
+  "id": "com.decksmith.app",
+  "description": "The Ultimate Cyberdeck Architecture, 3D CAD & Hardware Studio Suite",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#030712",
   "theme_color": "#00ff66",
+  "categories": ["utilities", "productivity", "developer", "hardware"],
   "icons": [
     {
-      "src": "/icon.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/icon.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Blueprint Studio",
+      "short_name": "Builder",
+      "description": "Design custom cyberdeck configurations",
+      "url": "/builder",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "3D CAD & Enclosures",
+      "short_name": "CAD",
+      "description": "Parametric 3D CAD and CNC toolpaths",
+      "url": "/cad",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Field Diagnostics HUD",
+      "short_name": "HUD",
+      "description": "Real hardware sensors & system telemetry",
+      "url": "/diagnostics",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AI Architect",
+      "short_name": "AI Assistant",
+      "description": "Ask hardware questions & optimize thermals",
+      "url": "/ai-architect",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

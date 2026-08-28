@@ -38,6 +38,7 @@ import WebSerialStudio from "./pages/WebSerialStudio";
 import AssemblyGuideStudio from "./pages/AssemblyGuideStudio";
 import PriceWatchStudio from "./pages/PriceWatchStudio";
 import PcbViewerStudio from "./pages/PcbViewerStudio";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
   return (
@@ -138,6 +139,7 @@ function App() {
               <Route path="profile/:userId" element={<Profile />} />
               <Route path="leaderboard" element={<Leaderboard />} />
               <Route path="calculator" element={<RaidCalcPage />} />
+              <Route path="privacy" element={<PrivacyPolicy />} />
             </Route>
           </Routes>
         </NotificationProvider>
