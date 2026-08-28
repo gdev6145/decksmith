@@ -6,11 +6,20 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#030712",
   "theme_color": "#00ff66",
-  "categories": ["utilities", "productivity", "developer", "hardware"],
+  "categories": [
+    "utilities",
+    "productivity",
+    "developer",
+    "hardware"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -37,28 +46,85 @@
       "short_name": "Builder",
       "description": "Design custom cyberdeck configurations",
       "url": "/builder",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "3D CAD & Enclosures",
       "short_name": "CAD",
       "description": "Parametric 3D CAD and CNC toolpaths",
       "url": "/cad",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Field Diagnostics HUD",
       "short_name": "HUD",
       "description": "Real hardware sensors & system telemetry",
       "url": "/diagnostics",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "AI Architect",
       "short_name": "AI Assistant",
       "description": "Ask hardware questions & optimize thermals",
       "url": "/ai-architect",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screenshot-1-builder.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Interactive Blueprint & BOM Builder"
+    },
+    {
+      "src": "/screenshots/screenshot-2-cad.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Parametric 3D CAD & Enclosure Fabrication"
+    },
+    {
+      "src": "/screenshots/screenshot-3-hud.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Real-Time Field Diagnostics HUD"
+    },
+    {
+      "src": "/screenshots/screenshot-4-pinout.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "40-Pin GPIO Multiplexer & Pinout Explorer"
+    },
+    {
+      "src": "/screenshots/screenshot-5-sdr.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "LoRa Mesh & SDR Spectrum Waterfall Studio"
     }
   ]
 }
