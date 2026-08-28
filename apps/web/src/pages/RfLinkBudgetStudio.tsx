@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { soundFx } from "../lib/soundFx";
+import { useNotification } from "../NotificationContext";
 
 interface RfProtocolPreset {
   id: string;
@@ -79,6 +80,7 @@ const COAX_CABLES: CoaxCable[] = [
 ];
 
 export default function RfLinkBudgetStudio() {
+  const { dispatchToast } = useNotification();
   const [selectedPresetId, setSelectedPresetId] = useState<string>("lora-915");
   const [txPowerDbm, setTxPowerDbm] = useState<number>(22);
   const [txAntennaGainDbi, setTxAntennaGainDbi] = useState<number>(3.0);
@@ -187,6 +189,11 @@ export default function RfLinkBudgetStudio() {
     a.download = `decksmith-rf-link-budget.md`;
     a.click();
     URL.revokeObjectURL(url);
+    dispatchToast({
+      type: "studio",
+      title: "📡 RF Link Budget Exported",
+      message: "Downloaded complete Fresnel zone & Free Space Path Loss analysis.",
+    });
   };
 
   return (
